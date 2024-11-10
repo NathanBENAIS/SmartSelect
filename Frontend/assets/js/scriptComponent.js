@@ -20,6 +20,7 @@ async function loadComponent(containerId, filepath) {
 document.addEventListener('DOMContentLoaded', async () => {
     await loadComponent('header-container', './components/header.html');
     await loadComponent('currently-container', './components/currently.html');
+    await loadComponent('recommended-container', './components/recommendedProducts.html');
     await loadComponent('footer-container', './components/footer.html');
     await loadComponent('logo-container', './components/logo.html');  
     await loadComponent('default-carousel-container', './components/carousel.html');

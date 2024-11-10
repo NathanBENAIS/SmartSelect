@@ -1,23 +1,42 @@
-<div
-  id="currently-container"
-  class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12"
->
-  <h2 class="text-2xl font-bold text-gray-900 mb-6">En ce moment</h2>
-  <div
-    id="products-container"
-    class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
-  >
-   
-     
-  <a href="#" class="flex flex-col items-center bg-white border border-gray-200 rounded-lg shadow hover:bg-gray-100 dark:border-gray-700 dark:bg-gray-800 dark:hover:bg-gray-700">
-    <img class="object-cover w-full rounded-t-lg h-64" src="./assets/images/Products/Apple-iPhone-15-6-1-5G-Double-SIM-128-Go-Rose.jpg" alt="">
-    <div class="flex flex-col justify-between p-4 leading-normal">
-        <h5 class="mb-2 text-lg font-bold tracking-tight text-gray-900 dark:text-white">Apple iPhone 15 6,1" 5G Double SIM 128 Go Rose</h5>
-    </div>
-</a>
+<main>
+  <div id="currently-container" class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+      <!-- Header avec titre et boutons -->
+      <div class="flex items-center justify-between mb-6">
+          <h2 class="text-2xl font-bold text-gray-900">En ce moment</h2>
+          <div class="flex items-center gap-4">
+              <button id="scroll-left-button"
+                  class="w-10 h-10 bg-white rounded-full shadow-lg flex items-center justify-center hover:bg-gray-50 focus:outline-none transition-all duration-200"
+                  aria-label="Défiler vers la gauche">
+                  <svg class="w-6 h-6 text-gray-800 transform rotate-180" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 10 16">
+                      <path d="M3.414 1A2 2 0 0 0 0 2.414v11.172A2 2 0 0 0 3.414 15L9 9.414a2 2 0 0 0 0-2.828L3.414 1Z"/>
+                  </svg>
+              </button>
+              <button id="scroll-right-button"
+                  class="w-10 h-10 bg-white rounded-full shadow-lg flex items-center justify-center hover:bg-gray-50 focus:outline-none transition-all duration-200"
+                  aria-label="Défiler vers la droite">
+                  <svg class="w-6 h-6 text-gray-800" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 10 16">
+                      <path d="M3.414 1A2 2 0 0 0 0 2.414v11.172A2 2 0 0 0 3.414 15L9 9.414a2 2 0 0 0 0-2.828L3.414 1Z"/>
+                  </svg>
+              </button>
+          </div>
+      </div>
 
-
-   
-   
+      <!-- Conteneur de produits -->
+      <div id="products-container" class="flex space-x-6 overflow-x-auto pb-6 scrollbar-hide scroll-smooth">
+          <!-- Les produits seront injectés ici par JavaScript -->
+          <div id="loading-indicator" class="w-full text-center py-8">
+              <div class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600"></div>
+          </div>
+      </div>
   </div>
-</div>
+</main>
+
+<style>
+  .scrollbar-hide {
+      -ms-overflow-style: none;
+      scrollbar-width: none;
+  }
+  .scrollbar-hide::-webkit-scrollbar {
+      display: none;
+  }
+</style>

@@ -23,7 +23,6 @@ function updateAuthSection() {
                 </button>
                 <div id="user-dropdown" class="hidden absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg py-1 z-50">
                     <a href="#" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Mon profil</a>
-                    <a href="#" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Mes favoris</a>
                     <hr class="my-1">
                     <button id="logout-button" class="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-gray-100">
                         Se déconnecter
@@ -75,6 +74,94 @@ function updateAuthSection() {
     }
 }
 
+// Fonction de debounce pour limiter les appels à l'API
+function debounce(func, wait) {
+    let timeout;
+    return function executedFunction(...args) {
+        const later = () => {
+            clearTimeout(timeout);
+            func(...args);
+        };
+        clearTimeout(timeout);
+        timeout = setTimeout(later, wait);
+    };
+}
+
+// Fonction pour formater les résultats de recherche
+// Fonction pour formater les résultats de recherche
+function formatSearchResult(result) {
+    return `
+        <a href="${window.appConfig.baseUrl}/Frontend/detailproduct.html?id=${result.id}" class="flex items-center p-4 hover:bg-gray-50 transition-colors">
+            <img src="${window.appConfig.baseUrl}${result.image_url}" alt="${result.name}" class="w-12 h-12 object-cover rounded-md">
+            <div class="ml-4">
+                <div class="text-sm font-medium text-gray-900">${result.name}</div>
+                <div class="text-sm text-gray-500">${result.manufacturer}</div>
+                <div class="flex items-center mt-1">
+                    <span class="text-sm font-medium text-blue-600">${result.price}</span>
+                    <span class="mx-2 text-gray-300">•</span>
+                    <span class="text-sm text-gray-500">${result.category}</span>
+                </div>
+            </div>
+        </a>
+    `;
+}
+
+// Initialisation de la recherche
+function initializeSearch() {
+    const searchInput = document.getElementById('search-input');
+    const searchResults = document.getElementById('search-results');
+    
+    if (!searchInput || !searchResults) return;
+
+    // Fonction de recherche
+    const performSearch = debounce(async (query) => {
+        if (query.length < 2) {
+            searchResults.classList.add('hidden');
+            return;
+        }
+    
+        try {
+            // Utiliser l'URL de l'API depuis la configuration
+            const apiUrl = `${window.appConfig.apiUrl}/products.php?action=search&q=${encodeURIComponent(query)}`;
+            console.log("URL de recherche:", apiUrl); // Pour debug
+            
+            const response = await fetch(apiUrl);
+            const data = await response.json();
+    
+            if (data.success && data.data.length > 0) {
+                searchResults.innerHTML = data.data.map(result => formatSearchResult(result)).join('');
+                searchResults.classList.remove('hidden');
+            } else {
+                searchResults.innerHTML = '<div class="p-4 text-sm text-gray-500">Aucun résultat trouvé</div>';
+                searchResults.classList.remove('hidden');
+            }
+        } catch (error) {
+            console.error('Erreur lors de la recherche:', error);
+            searchResults.innerHTML = '<div class="p-4 text-sm text-red-500">Une erreur est survenue</div>';
+            searchResults.classList.remove('hidden');
+        }
+    }, 300);
+
+    // Écouteurs d'événements
+    searchInput.addEventListener('input', (e) => {
+        performSearch(e.target.value.trim());
+    });
+
+    // Fermer les résultats si on clique ailleurs
+    document.addEventListener('click', (e) => {
+        if (!searchInput.contains(e.target) && !searchResults.contains(e.target)) {
+            searchResults.classList.add('hidden');
+        }
+    });
+
+    // Naviguer dans les résultats avec le clavier
+    searchInput.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') {
+            searchResults.classList.add('hidden');
+        }
+    });
+}
+
 // Fonction d'initialisation des menus
 function initializeMenus() {
     const megaMenuButton = document.getElementById('mega-menu-dropdown-button');
@@ -84,6 +171,9 @@ function initializeMenus() {
 
     // Initialiser la section d'authentification
     updateAuthSection();
+    
+    // Initialiser la recherche
+    initializeSearch();
 
     if (megaMenuButton && megaMenuDropdown) {
         // Gestion du menu déroulant des catégories

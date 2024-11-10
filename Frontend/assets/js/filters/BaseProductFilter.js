@@ -7,7 +7,9 @@ class BaseProductFilter {
         this.itemsPerPage = 12;
         this.sortOrder = 'price-asc';
         this.loading = false;
-        this.categoryId = new URLSearchParams(window.location.search).get('category') || '1';
+        
+        this.categoryId = determineCategoryFromPage();
+        console.log('Catégorie sélectionnée:', this.categoryId);
 
         this.bindMethods();
         this.init();
@@ -20,6 +22,8 @@ class BaseProductFilter {
         this.sortProducts = this.sortProducts.bind(this);
         this.changePage = this.changePage.bind(this);
         this.resetFilters = this.resetFilters.bind(this);
+        this.updateResultsCount = this.updateResultsCount.bind(this);
+        this.handleTemperatureVote = this.handleTemperatureVote.bind(this);
     }
 
     showLoading() {
@@ -57,12 +61,33 @@ class BaseProductFilter {
     async loadManufacturers() {
         console.log('LoadManufacturers started');
         try {
-            const response = await fetch(`${window.appConfig.baseUrl}/Backend/api/products.php?category=${this.categoryId}&action=manufacturers`);
-            const data = await response.json();
-            
+            const url = `${window.appConfig.baseUrl}/Backend/api/products.php?category=${this.categoryId}&action=manufacturers`;
+            console.log('Requête manufacturers URL:', url);
+
+            const response = await fetch(url);
+            if (!response.ok) {
+                throw new Error(`Erreur HTTP: ${response.status}`);
+            }
+
+            const responseText = await response.text();
+            console.log('Réponse brute:', responseText);
+
+            if (!responseText) {
+                throw new Error('Réponse vide du serveur');
+            }
+
+            const data = JSON.parse(responseText);
+            console.log('Données fabricants reçues:', data);
+
             if (data.success && Array.isArray(data.data)) {
                 const manufacturerSelect = document.getElementById('manufacturer');
                 if (manufacturerSelect) {
+                    // Vider les options existantes sauf la première
+                    while (manufacturerSelect.options.length > 1) {
+                        manufacturerSelect.remove(1);
+                    }
+
+                    // Ajouter les nouveaux fabricants
                     data.data.forEach(manufacturer => {
                         const option = document.createElement('option');
                         option.value = manufacturer;
@@ -81,24 +106,48 @@ class BaseProductFilter {
         try {
             this.showLoading();
             const filters = this.getFilterValues();
-            
-            const response = await fetch(`${window.appConfig.baseUrl}/Backend/api/products.php?category=${this.categoryId}`, {
+            const url = `${window.appConfig.baseUrl}/Backend/api/products.php?category=${this.categoryId}`;
+            console.log('Requête produits URL:', url);
+            console.log('Filtres:', filters);
+
+            const response = await fetch(url, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'
                 },
                 body: JSON.stringify(filters)
             });
-            
-            const data = await response.json();
+
+            if (!response.ok) {
+                throw new Error(`Erreur HTTP: ${response.status}`);
+            }
+
+            const responseText = await response.text();
+            console.log('Réponse brute:', responseText);
+
+            if (!responseText) {
+                throw new Error('Réponse vide du serveur');
+            }
+
+            const data = JSON.parse(responseText);
+            console.log('Données produits reçues:', data);
+
             if (data.success) {
                 this.products = data.data;
                 this.currentPage = 1;
                 this.sortAndDisplayProducts();
                 this.updateResultsCount();
+            } else {
+                throw new Error(data.message || 'Erreur lors du chargement des produits');
             }
         } catch (error) {
             console.error('Error loading products:', error);
+            const container = document.getElementById('products-grid');
+            if (container) {
+                container.innerHTML = `<p class="text-center text-red-500 col-span-full py-8">
+                    Une erreur est survenue lors du chargement des produits: ${error.message}
+                </p>`;
+            }
         } finally {
             this.hideLoading();
         }
@@ -152,26 +201,109 @@ class BaseProductFilter {
     }
 
     createProductCard(product) {
+        const defaultImageUrl = `${window.appConfig.baseUrl}/Frontend/assets/images/Products/default-product.jpg`;
+        
         return `
-            <div class="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow">
-                <div class="aspect-w-3 aspect-h-2">
-                    <img src="${product.image_url || window.appConfig.baseUrl + '/Frontend/assets/images/placeholder.png'}" 
-                         alt="${product.name}"
-                         class="w-full h-48 object-cover">
+            <div class="relative block bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow">
+                <!-- Voting Buttons Section -->
+                <div class="absolute top-3 right-3 z-10 flex items-center space-x-3 p-2 bg-white border border-primary/50 rounded-full shadow-lg">
+                    <button
+                        type="button"
+                        title="Pas convaincu(e) ? Vous pouvez baisser la température."
+                        class="overflow-visible flex items-center justify-center text-blue-500 hover:text-blue-700"
+                        data-vote-type="down"
+                        data-product-id="${product.id}"
+                        onclick="window.productFilter.handleTemperatureVote(event, this)">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 fill-current" viewBox="0 0 24 24">
+                            <path d="M5 12h14v2H5z"/>
+                        </svg>
+                    </button>
+                    <span
+                        title="Actuellement évalué à ${product.temperature || '0'}° par la communauté."
+                        class="text-sm font-medium text-yellow-500"
+                        data-temperature="${product.id}">
+                        ${product.temperature || '0'}°
+                    </span>
+                    <button
+                        type="button"
+                        title="Bon deal ? Votez pour le mettre en avant !"
+                        class="overflow-visible flex items-center justify-center text-red-500 hover:text-red-700"
+                        data-vote-type="up"
+                        data-product-id="${product.id}"
+                        onclick="window.productFilter.handleTemperatureVote(event, this)">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" viewBox="0 0 24 24">
+                            <path d="M12 5v14m-7-7h14" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                        </svg>
+                    </button>
                 </div>
-                <div class="p-4">
-                    <h3 class="text-lg font-semibold text-gray-800 mb-2">${product.name}</h3>
-                    <p class="text-sm text-gray-600">${product.manufacturer}</p>
-                    <div class="text-sm text-gray-600 mb-4">
-                        ${this.generateSpecsSummary(product)}
+
+                <a href="detailproduct.html?id=${product.id}" class="block">
+                    <div class="aspect-w-3 aspect-h-2">
+                        <img src="${product.image_url || defaultImageUrl}" 
+                             alt="${product.name}"
+                             class="w-full h-48 object-cover"
+                             onerror="this.src='${defaultImageUrl}'">
                     </div>
-                    <div class="flex items-center justify-between mt-4">
-                        <div class="text-lg font-bold text-primary-600">
-                            ${parseFloat(product.price).toLocaleString('fr-FR', { style: 'currency', currency: 'EUR' })}
+                    <div class="p-4">
+                        <h3 class="text-lg font-semibold text-gray-800 mb-2">${product.name}</h3>
+                        <p class="text-sm text-gray-600">${product.manufacturer}</p>
+                        <div class="text-sm text-gray-600 mb-4">
+                            ${this.generateSpecsSummary(product)}
+                        </div>
+                        <div class="flex items-center justify-between mt-4">
+                            <div class="text-lg font-bold text-primary-600">
+                                ${parseFloat(product.price).toLocaleString('fr-FR', { style: 'currency', currency: 'EUR' })}
+                            </div>
                         </div>
                     </div>
-                </div>
+                </a>
             </div>`;
+    }
+
+    async handleTemperatureVote(event, button) {
+        event.preventDefault();
+        event.stopPropagation();
+
+        // Vérifier si l'utilisateur est connecté en utilisant localStorage
+        const user = localStorage.getItem('user');
+        if (!user) {
+            alert('Vous devez être connecté pour voter. Veuillez vous connecter ou créer un compte.');
+            window.location.href = 'login.html';
+            return;
+        }
+
+        const userData = JSON.parse(user);
+        const productId = button.dataset.productId;
+        const voteType = button.dataset.voteType;
+
+        try {
+            const response = await fetch(`${window.appConfig.baseUrl}/Backend/api/temperature-vote.php`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    user_id: userData.id, // Ajouter l'ID de l'utilisateur
+                    product_id: productId,
+                    vote_type: voteType
+                })
+            });
+
+            const data = await response.json();
+            
+            if (data.success) {
+                // Mettre à jour l'affichage de la température
+                const temperatureElement = document.querySelector(`[data-temperature="${productId}"]`);
+                if (temperatureElement) {
+                    temperatureElement.textContent = `${data.newTemperature}°`;
+                }
+            } else {
+                throw new Error(data.message || 'Erreur lors du vote');
+            }
+        } catch (error) {
+            console.error('Erreur lors du vote:', error);
+            alert('Une erreur est survenue lors du vote. Veuillez réessayer.');
+        }
     }
 
     updateResultsCount() {
@@ -236,6 +368,7 @@ class BaseProductFilter {
         this.sortAndDisplayProducts();
     }
 
+    // Méthodes abstraites à implémenter dans les classes enfants
     initializeFilters() {
         throw new Error('initializeFilters must be implemented by child class');
     }
@@ -244,9 +377,12 @@ class BaseProductFilter {
         throw new Error('getFilterValues must be implemented by child class');
     }
 
-    generateSpecsSummary() {
-        throw new Error('generateSpecsSummary must be implemented by child class');
+
+
+    resetFilters() {
+        throw new Error('resetFilters must be implemented by child class');
     }
 }
 
+// Rendre la classe disponible globalement
 window.BaseProductFilter = BaseProductFilter;

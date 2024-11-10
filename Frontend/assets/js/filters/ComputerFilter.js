@@ -1,11 +1,23 @@
 // ComputerFilter.js
 
 class ComputerFilter extends BaseProductFilter {
-    initializeFilters() {
+    async initializeFilters() {
         console.log('Initializing computer filters');
+        
+        // Charger les données des filtres
+        await Promise.all([
+            this.loadSelectOptions('manufacturer'),
+            this.loadSelectOptions('ram'),
+            this.loadSelectOptions('storage'),
+            this.loadSelectOptions('processor'),
+            this.loadSelectOptions('gpu'),
+            this.loadSelectOptions('screen_size')
+        ]);
+
+        // Initialiser les écouteurs d'événements
         const filters = [
             'min-price', 'max-price', 'manufacturer', 'min-ram', 
-            'storage', 'screen-size', 'processor', 'gpu', 'usage'
+            'storage', 'processor', 'gpu', 'screen-size'
         ];
         
         filters.forEach(id => {
@@ -25,21 +37,41 @@ class ComputerFilter extends BaseProductFilter {
         });
     }
 
-    getFilterValues() {
-        const values = {
-            minPrice: document.getElementById('min-price')?.value || '',
-            maxPrice: document.getElementById('max-price')?.value || '',
-            manufacturer: document.getElementById('manufacturer')?.value || '',
-            minRam: document.getElementById('min-ram')?.value || '',
-            storage: document.getElementById('storage')?.value || '',
-            screenSize: document.getElementById('screen-size')?.value || '',
-            processor: document.getElementById('processor')?.value || '',
-            gpu: document.getElementById('gpu')?.value || '',
-            usage: document.getElementById('usage')?.value || ''
-        };
-
-        console.log('Computer filter values:', values);
-        return values;
+    async loadSelectOptions(filterType) {
+        try {
+            const response = await fetch(`${window.appConfig.apiUrl}/filters.php?category=2&type=${filterType}`);
+            const data = await response.json();
+            
+            if (data.success) {
+                const select = document.getElementById(filterType);
+                if (select) {
+                    select.innerHTML = '<option value="">Tous</option>';
+                    data.data.forEach(option => {
+                        const optElement = document.createElement('option');
+                        switch(filterType) {
+                            case 'processor':
+                                optElement.value = option.brand;
+                                optElement.textContent = `${option.brand} ${option.model}`;
+                                break;
+                            case 'gpu':
+                                optElement.value = option.brand;
+                                optElement.textContent = `${option.brand} ${option.model}`;
+                                break;
+                            case 'storage':
+                                optElement.value = option.storage_capacity;
+                                optElement.textContent = `${option.storage_capacity} Go ${option.storage_type || ''}`;
+                                break;
+                            default:
+                                optElement.value = option;
+                                optElement.textContent = option;
+                        }
+                        select.appendChild(optElement);
+                    });
+                }
+            }
+        } catch (error) {
+            console.error(`Error loading ${filterType} options:`, error);
+        }
     }
 
     generateSpecsSummary(product) {

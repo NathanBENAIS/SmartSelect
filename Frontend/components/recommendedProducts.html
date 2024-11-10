@@ -1,0 +1,31 @@
+<!-- Products Section -->
+<div id="recommended-container" class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+    <!-- Header avec titre -->
+    <div class="flex items-center justify-between mb-6">
+        <h2 class="text-2xl font-bold text-gray-900">Produits recommandés</h2>
+        <div class="flex items-center gap-4">
+            <button id="recommended-scroll-left"
+                class="w-10 h-10 bg-white rounded-full shadow-lg flex items-center justify-center hover:bg-gray-50 focus:outline-none transition-all duration-200"
+                aria-label="Défiler vers la gauche">
+                <svg class="w-6 h-6 text-gray-800 transform rotate-180" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 10 16">
+                    <path d="M3.414 1A2 2 0 0 0 0 2.414v11.172A2 2 0 0 0 3.414 15L9 9.414a2 2 0 0 0 0-2.828L3.414 1Z"/>
+                </svg>
+            </button>
+            <button id="recommended-scroll-right"
+                class="w-10 h-10 bg-white rounded-full shadow-lg flex items-center justify-center hover:bg-gray-50 focus:outline-none transition-all duration-200"
+                aria-label="Défiler vers la droite">
+                <svg class="w-6 h-6 text-gray-800" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 10 16">
+                    <path d="M3.414 1A2 2 0 0 0 0 2.414v11.172A2 2 0 0 0 3.414 15L9 9.414a2 2 0 0 0 0-2.828L3.414 1Z"/>
+                </svg>
+            </button>
+        </div>
+    </div>
+
+    <!-- Conteneur de produits -->
+    <div id="recommended-products-container" class="flex space-x-6 overflow-x-auto pb-6 scrollbar-hide scroll-smooth">
+        <!-- Les produits seront injectés ici par JavaScript -->
+        <div id="recommended-loading-indicator" class="w-full text-center py-8">
+            <div class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600"></div>
+        </div>
+    </div>
+</div>
