@@ -1,8 +1,8 @@
-// assets/js/search.js
 class SearchManager {
     constructor(inputElement, resultsElement) {
         this.searchInput = inputElement;
         this.searchResults = resultsElement;
+        this.isVisible = false;
         this.initializeSearch();
     }
 
@@ -37,6 +37,18 @@ class SearchManager {
         `;
     }
 
+    hideResults() {
+        this.searchResults.classList.add('opacity-0', 'invisible');
+        this.searchResults.classList.remove('opacity-100', 'visible');
+        this.isVisible = false;
+    }
+
+    showResults() {
+        this.searchResults.classList.remove('opacity-0', 'invisible');
+        this.searchResults.classList.add('opacity-100', 'visible');
+        this.isVisible = true;
+    }
+
     // Initialiser la recherche
     initializeSearch() {
         if (!this.searchInput || !this.searchResults) return;
@@ -44,7 +56,7 @@ class SearchManager {
         // Fonction de recherche
         const performSearch = this.debounce(async (query) => {
             if (query.length < 2) {
-                this.searchResults.classList.add('hidden');
+                this.hideResults();
                 return;
             }
 
@@ -55,34 +67,48 @@ class SearchManager {
 
                 if (data.success && data.data.length > 0) {
                     this.searchResults.innerHTML = data.data.map(result => this.formatSearchResult(result)).join('');
-                    this.searchResults.classList.remove('hidden');
+                    this.showResults();
                 } else {
                     this.searchResults.innerHTML = '<div class="p-4 text-sm text-gray-500">Aucun résultat trouvé</div>';
-                    this.searchResults.classList.remove('hidden');
+                    this.showResults();
                 }
             } catch (error) {
                 console.error('Erreur lors de la recherche:', error);
                 this.searchResults.innerHTML = '<div class="p-4 text-sm text-red-500">Une erreur est survenue</div>';
-                this.searchResults.classList.remove('hidden');
+                this.showResults();
             }
         }, 300);
 
-        // Écouteurs d'événements
+        // Écouteur d'événement pour l'input
         this.searchInput.addEventListener('input', (e) => {
             performSearch(e.target.value.trim());
         });
 
-        // Fermer les résultats si on clique ailleurs
+        // Empêcher la fermeture lors du clic dans la zone de recherche
+        this.searchInput.addEventListener('click', (e) => {
+            e.stopPropagation();
+            if (this.searchInput.value.length >= 2) {
+                this.showResults();
+            }
+        });
+
+        // Empêcher la fermeture lors du clic dans les résultats
+        this.searchResults.addEventListener('click', (e) => {
+            e.stopPropagation();
+        });
+
+        // Fermer les résultats lors du clic en dehors
         document.addEventListener('click', (e) => {
-            if (!this.searchInput.contains(e.target) && !this.searchResults.contains(e.target)) {
-                this.searchResults.classList.remove('hidden');
+            if (this.isVisible && !this.searchInput.contains(e.target) && !this.searchResults.contains(e.target)) {
+                this.hideResults();
             }
         });
 
         // Navigation clavier
         this.searchInput.addEventListener('keydown', (e) => {
             if (e.key === 'Escape') {
-                this.searchResults.classList.add('hidden');
+                this.hideResults();
+                this.searchInput.blur();
             }
         });
     }

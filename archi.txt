@@ -1,0 +1,20 @@
+smartselect/
+├── Backend/│    
+│   ├── config.php
+│   ├── login.php
+│   ├── register.php
+│   ├── telemetryHandler.php
+│   └── category_handler.php
+├────── api/
+│     ├── products.php
+│     ├── filters.php
+│     ├── metrics.php
+│     ├── product-details.php
+│     ├── temperature-vote.php
+│
+├── monitoring/
+│   └── prometheus/
+│       └── prometheus.yml
+├── Frontend/│    
+│   ├── index.html
+│ 

@@ -1,6 +1,7 @@
 // Configuration de l'URL de base de l'API
-const API_URL = 'http://localhost/smartselect/backend';
+const API_URL = 'http://localhost/smartselect/Backend';
 
+// Fonction pour initialiser les gestionnaires d'événements
 // Fonction pour initialiser les gestionnaires d'événements
 function initializeLoginHandlers() {
     // Gestion du bouton de connexion dans le header
@@ -20,20 +21,23 @@ function initializeLoginHandlers() {
         });
     }
 
-    // Gestion du formulaire de connexion
+    // Sélectionner les boutons de soumission
     const loginSubmitButton = document.querySelector('button.bg-blue-500');
+    const signInSubmitButton = document.querySelector('button.bg-blue-500');
+
+    // Gestion du formulaire de connexion
     if (loginSubmitButton && window.location.pathname.includes('login.html')) {
         loginSubmitButton.addEventListener('click', async function(e) {
             e.preventDefault();
             
             const emailInput = document.getElementById('email');
             const passwordInput = document.getElementById('password');
-
+    
             if (!emailInput.value || !passwordInput.value) {
-                alert('Veuillez remplir tous les champs');
+                toastManager.warning('Veuillez remplir tous les champs');
                 return;
             }
-
+    
             try {
                 const response = await fetch(`${API_URL}/login.php`, {
                     method: 'POST',
@@ -45,26 +49,26 @@ function initializeLoginHandlers() {
                         password: passwordInput.value
                     })
                 });
-
+    
                 const data = await response.json();
                 
                 if (data.success) {
-                    // Stocker les informations de l'utilisateur
+                    toastManager.success('Connexion réussie !');
                     localStorage.setItem('user', JSON.stringify(data.user));
-                    // Rediriger vers la page d'accueil
-                    window.location.href = 'index.html';
+                    setTimeout(() => {
+                        window.location.href = 'index.html';
+                    }, 1000);
                 } else {
-                    alert(data.message);
+                    toastManager.error(data.message);
                 }
             } catch (error) {
                 console.error('Erreur:', error);
-                alert('Erreur lors de la connexion');
+                toastManager.error('Erreur lors de la connexion');
             }
         });
     }
-
+    
     // Gestion du formulaire d'inscription
-    const signInSubmitButton = document.querySelector('button.bg-blue-500');
     if (signInSubmitButton && window.location.pathname.includes('signIn.html')) {
         signInSubmitButton.addEventListener('click', async function(e) {
             e.preventDefault();
@@ -73,17 +77,17 @@ function initializeLoginHandlers() {
             const emailInput = document.getElementById('email');
             const passwordInput = document.getElementById('password');
             const confirmPasswordInput = document.getElementById('confirm-password');
-
+    
             if (!nameInput.value || !emailInput.value || !passwordInput.value || !confirmPasswordInput.value) {
-                alert('Veuillez remplir tous les champs');
+                toastManager.warning('Veuillez remplir tous les champs');
                 return;
             }
-
+    
             if (passwordInput.value !== confirmPasswordInput.value) {
-                alert('Les mots de passe ne correspondent pas');
+                toastManager.error('Les mots de passe ne correspondent pas');
                 return;
             }
-
+    
             try {
                 const response = await fetch(`${API_URL}/register.php`, {
                     method: 'POST',
@@ -96,18 +100,20 @@ function initializeLoginHandlers() {
                         password: passwordInput.value
                     })
                 });
-
+    
                 const data = await response.json();
                 
                 if (data.success) {
-                    alert('Inscription réussie! Vous pouvez maintenant vous connecter.');
-                    window.location.href = 'login.html';
+                    toastManager.success('Inscription réussie! Vous allez être redirigé vers la page de connexion.');
+                    setTimeout(() => {
+                        window.location.href = 'login.html';
+                    }, 2000);
                 } else {
-                    alert(data.message);
+                    toastManager.error(data.message);
                 }
             } catch (error) {
                 console.error('Erreur:', error);
-                alert('Erreur lors de l\'inscription');
+                toastManager.error('Erreur lors de l\'inscription');
             }
         });
     }

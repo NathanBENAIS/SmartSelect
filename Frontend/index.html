@@ -12,15 +12,15 @@
 
     <!-- Carousel -->
 
-    <!-- <div id="default-carousel-container"></div> -->
+    <div id="default-carousel-container"></div>
     <!-- Carousel -->
 
 
     <!-- Hero Section -->
-    <div class="bg-white">
-      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+    <div class="bg-white py-8"> <!-- Ajout de mt-16 pour créer de l'espace sous le header -->
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div class="text-center">
-          <h1 class="text-4xl font-bold text-gray-900 mb-4">
+          <h1 class="text-4xl font-bold text-gray-900 mt-8 mb-4">
             Trouvez le produit high-tech idéal
           </h1>
           <p class="text-xl text-gray-600 mb-8">
@@ -34,10 +34,11 @@
                 id="hero-search"
                 class="w-full p-4 pr-12 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 placeholder="Rechercher un produit..."
+                autocomplete="off"
               />
               <div 
                 id="hero-search-results" 
-                class="absolute z-50 w-full bg-white mt-2 rounded-lg shadow-lg border border-gray-200 hidden overflow-y-auto max-h-96"
+                class="absolute z-[9999] w-full bg-white mt-2 rounded-lg shadow-lg border border-gray-200 opacity-0 invisible transition-all duration-200 overflow-y-auto max-h-96"
               ></div>
               <button
                 class="absolute right-4 top-1/2 transform -translate-y-1/2"
@@ -112,6 +113,7 @@
     <script src="./assets/js/filters/AllProductsManager.js"></script>
     
     <!-- Charge la logique spécifique à la page -->
+    <script src="./assets/js/toastManager.js"></script>
     <script src="./assets/js/category.js"></script>
     <script src="./assets/js/login.js"></script>       
     <script src="./assets/js/header.js"></script>
