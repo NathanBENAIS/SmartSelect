@@ -1,3 +1,4 @@
+console.log("Le fichier search.js est exécuté.");
 class SearchManager {
     constructor(inputElement, resultsElement) {
         this.searchInput = inputElement;
@@ -21,21 +22,22 @@ class SearchManager {
 
     // Formater les résultats
     formatSearchResult(result) {
+        // Construit l'URL correcte en ajoutant "/smartselect/Frontend/assets/" avant le chemin d'image
+        const imageUrl = result.image_url.replace("/smartselectassets/", "/smartselect/Frontend/assets/");
+    
         return `
             <a href="${window.appConfig.baseUrl}/Frontend/detailproduct.html?id=${result.id}" class="flex items-center p-4 hover:bg-gray-50 transition-colors">
-                <img src="${window.appConfig.baseUrl}${result.image_url}" alt="${result.name}" class="w-12 h-12 object-cover rounded-md">
+                <img src="${imageUrl}" alt="${result.name}" class="w-12 h-12 object-cover rounded-md">
                 <div class="ml-4">
                     <div class="text-sm font-medium text-gray-900">${result.name}</div>
-                    <div class="text-sm text-gray-500">${result.manufacturer}</div>
-                    <div class="flex items-center mt-1">
-                        <span class="text-sm font-medium text-blue-600">${result.price}</span>
-                        <span class="mx-2 text-gray-300">•</span>
-                        <span class="text-sm text-gray-500">${result.category}</span>
-                    </div>
+                    <div class="text-sm text-gray-500">${result.manufacturer}</div>                
                 </div>
             </a>
         `;
     }
+    
+    
+    
 
     hideResults() {
         this.searchResults.classList.add('opacity-0', 'invisible');

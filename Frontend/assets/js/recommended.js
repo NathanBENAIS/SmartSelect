@@ -106,6 +106,7 @@ class RecommendedProducts {
                     <a href="detailproduct.html?id=${product.id}" class="block">
                         <img 
                             class="object-cover w-full h-64 rounded-t-lg"
+                            style="object-fit: contain"
                             src="${product.image_url || defaultImageUrl}"
                             alt="${product.name}"
                             onerror="this.src='${defaultImageUrl}'"

@@ -202,7 +202,7 @@ class BaseProductFilter {
 
     createProductCard(product) {
         const defaultImageUrl = `${window.appConfig.baseUrl}/Frontend/assets/images/Products/default-product.jpg`;
-        
+    
         return `
             <div class="relative block bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow">
                 <!-- Voting Buttons Section -->
@@ -236,12 +236,14 @@ class BaseProductFilter {
                         </svg>
                     </button>
                 </div>
-
+    
                 <a href="detailproduct.html?id=${product.id}" class="block">
                     <div class="aspect-w-3 aspect-h-2">
+                        <!-- L'image du produit avec une image par défaut en cas de problème -->
                         <img src="${product.image_url || defaultImageUrl}" 
                              alt="${product.name}"
                              class="w-full h-48 object-cover"
+                             style="object-fit: contain;"
                              onerror="this.src='${defaultImageUrl}'">
                     </div>
                     <div class="p-4">
@@ -259,6 +261,7 @@ class BaseProductFilter {
                 </a>
             </div>`;
     }
+    
 
     async handleTemperatureVote(event, button) {
         event.preventDefault();

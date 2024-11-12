@@ -1,0 +1,11 @@
+global:
+  scrape_interval: 15s    # Augmenté pour réduire la charge
+  evaluation_interval: 15s
+  scrape_timeout: 10s     # Augmenté pour éviter les timeouts
+
+scrape_configs:
+  - job_name: 'smartselect'
+    static_configs:
+      - targets: ['localhost:80']
+    metrics_path: '/smartselect/Backend/api/metrics.php'
+    scheme: 'http'

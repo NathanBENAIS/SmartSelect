@@ -198,6 +198,7 @@ class AllProductsManager {
                         <img src="${product.image_url || defaultImageUrl}" 
                              alt="${product.name}"
                              class="w-full h-48 object-cover"
+                             style="object-fit: contain;
                              onerror="this.src='${defaultImageUrl}'">
                     </div>
                     <div class="p-4">

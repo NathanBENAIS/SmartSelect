@@ -1,5 +1,13 @@
 <?php
 require_once '../config.php';
+require_once '../telemetryHandler.php';
+
+// Initialisation de la télémétrie et du temps de départ
+$telemetry = TelemetryHandler::getInstance();
+$startTime = microtime(true);
+
+// Définir le header pour JSON
+header('Content-Type: application/json');
 
 // Log pour debug
 error_log("=== Début de la requête ===");
@@ -7,55 +15,65 @@ error_log("Méthode: " . $_SERVER['REQUEST_METHOD']);
 error_log("GET params: " . print_r($_GET, true));
 error_log("URI: " . $_SERVER['REQUEST_URI']);
 
-// Vérifier si on a une connexion à la base de données
+// Enregistrer le nombre de connexions actives
+$telemetry->recordActiveConnections(1);
+
+// Vérifier la connexion à la base de données
 if (!isset($db)) {
     error_log("Erreur: Pas de connexion à la base de données");
-    die(json_encode([
+    $telemetry->recordAPIRequest('/db-connection', '500');
+    $telemetry->recordActiveConnections(0);
+    http_response_code(500);
+    echo json_encode([
         'success' => false,
         'message' => 'Erreur de connexion à la base de données'
-    ]));
+    ]);
+    exit;
 }
 
 class ProductsAPI {
     private $db;
+    private $telemetry;
     
-    public function __construct($db) {
+    public function __construct($db, $telemetry) {
         $this->db = $db;
+        $this->telemetry = $telemetry;
     }
     
     public function getProducts($categoryId, $filters = []) {
+        $methodStart = microtime(true);
         try {
-            // Vérifier que la catégorie est valide
             if (!in_array($categoryId, [1, 2, 3])) {
+                $this->telemetry->recordAPIRequest("/products/category/$categoryId", "400");
                 throw new Exception("Catégorie invalide: " . $categoryId);
             }
 
-            // Construction de la requête SQL de base selon la catégorie
+            $queryStart = microtime(true);
             $sql = $this->buildBaseSqlQuery($categoryId);
-            
-            // Ajout des conditions de filtrage
             list($sql, $params) = $this->addFilterConditions($sql, $filters, $categoryId);
             
-            error_log("SQL Query: " . $sql);
-            error_log("Params: " . print_r($params, true));
-            
-            // Exécution de la requête
             $stmt = $this->db->prepare($sql);
             $stmt->execute($params);
             $results = $stmt->fetchAll(PDO::FETCH_ASSOC);
             
-            error_log("Nombre de résultats: " . count($results));
+            $queryDuration = microtime(true) - $queryStart;
+            $this->telemetry->recordDBQueryTime("get_products", $queryDuration);
+            
+            $this->telemetry->recordProductCount("category_$categoryId", count($results));
+            $duration = microtime(true) - $methodStart;
+            $this->telemetry->recordResponseTime("/products/category/$categoryId", $duration);
             
             return $results;
             
         } catch (PDOException $e) {
+            $this->telemetry->recordAPIRequest("/products/error", "500");
             error_log("Erreur DB: " . $e->getMessage());
             throw new Exception("Erreur lors de la récupération des produits: " . $e->getMessage());
         }
     }
 
     private function buildBaseSqlQuery($categoryId) {
-        // Requête de base différente selon la catégorie
+        // Le code existant reste le même
         switch ($categoryId) {
             case 1: // Smartphones
                 return "SELECT DISTINCT
@@ -123,7 +141,6 @@ class ProductsAPI {
         $params = [':category_id' => $categoryId];
         $conditions = [];
 
-        // Filtres communs à toutes les catégories
         if (!empty($filters['minPrice'])) {
             $conditions[] = "p.price >= :min_price";
             $params[':min_price'] = $filters['minPrice'];
@@ -139,7 +156,6 @@ class ProductsAPI {
             $params[':manufacturer'] = $filters['manufacturer'];
         }
 
-        // Filtres spécifiques par catégorie
         switch ($categoryId) {
             case 1: // Smartphones
                 if (!empty($filters['minRam'])) {
@@ -183,7 +199,6 @@ class ProductsAPI {
                 break;
         }
 
-        // Ajout des conditions à la requête si présentes
         if (!empty($conditions)) {
             $sql .= " AND " . implode(" AND ", $conditions);
         }
@@ -191,33 +206,12 @@ class ProductsAPI {
         return [$sql, $params];
     }
 
-    public function getManufacturers($categoryId) {
-        try {
-            $sql = "SELECT DISTINCT manufacturer 
-                    FROM products 
-                    WHERE category_id = :category_id 
-                    AND manufacturer IS NOT NULL 
-                    ORDER BY manufacturer ASC";
-            
-            $stmt = $this->db->prepare($sql);
-            $stmt->execute([':category_id' => $categoryId]);
-            $results = $stmt->fetchAll(PDO::FETCH_COLUMN);
-            
-            error_log("Fabricants trouvés: " . print_r($results, true));
-            
-            return $results;
-            
-        } catch (PDOException $e) {
-            error_log("Erreur SQL: " . $e->getMessage());
-            throw new Exception("Erreur lors de la récupération des fabricants: " . $e->getMessage());
-        }
-    }
-
     public function searchProducts($query) {
+        $methodStart = microtime(true);
         try {
             error_log("Début de la recherche pour: " . $query);
             
-            // Préparer la requête de recherche
+            $queryStart = microtime(true);
             $sql = "SELECT DISTINCT
                     p.id,
                     p.name,
@@ -238,7 +232,7 @@ class ProductsAPI {
                         END,
                         p.rating DESC
                     LIMIT 5";
-    
+
             $searchTerm = "%" . $query . "%";
             $params = [
                 ':search1' => $searchTerm,
@@ -246,19 +240,15 @@ class ProductsAPI {
                 ':search3' => $searchTerm,
                 ':search4' => $searchTerm
             ];
-    
-            error_log("Exécution de la requête SQL: " . $sql);
-            error_log("Paramètres: " . print_r($params, true));
-    
+
             $stmt = $this->db->prepare($sql);
             $stmt->execute($params);
             $results = $stmt->fetchAll(PDO::FETCH_ASSOC);
-    
-            error_log("Nombre de résultats trouvés: " . count($results));
-    
-            // Formater les résultats
+            
+            $queryDuration = microtime(true) - $queryStart;
+            $this->telemetry->recordDBQueryTime("search_products", $queryDuration);
+
             $formattedResults = array_map(function($item) {
-                error_log("Formatage du résultat: " . print_r($item, true));
                 return [
                     'id' => $item['id'],
                     'name' => $item['name'],
@@ -268,17 +258,44 @@ class ProductsAPI {
                     'category' => $item['category_name'] ?? 'Non catégorisé'
                 ];
             }, $results);
-    
-            error_log("Résultats formatés: " . print_r($formattedResults, true));
+            
+            $duration = microtime(true) - $methodStart;
+            $this->telemetry->recordResponseTime("/products/search", $duration);
+            $this->telemetry->recordSearchRequest($query, count($results));
+            $this->telemetry->recordAPIRequest("/products/search", "200");
+            
             return $formattedResults;
-    
-        } catch (PDOException $e) {
-            error_log("Erreur PDO dans searchProducts: " . $e->getMessage());
-            error_log("Stack trace: " . $e->getTraceAsString());
-            throw new Exception("Erreur lors de la recherche des produits: " . $e->getMessage());
+            
         } catch (Exception $e) {
-            error_log("Erreur générale dans searchProducts: " . $e->getMessage());
-            error_log("Stack trace: " . $e->getTraceAsString());
+            $this->telemetry->recordAPIRequest("/products/search", "500");
+            throw $e;
+        }
+    }
+
+    public function getManufacturers($categoryId) {
+        $methodStart = microtime(true);
+        try {
+            $queryStart = microtime(true);
+            $sql = "SELECT DISTINCT manufacturer 
+                    FROM products 
+                    WHERE category_id = :category_id 
+                    AND manufacturer IS NOT NULL 
+                    ORDER BY manufacturer ASC";
+            
+            $stmt = $this->db->prepare($sql);
+            $stmt->execute([':category_id' => $categoryId]);
+            $results = $stmt->fetchAll(PDO::FETCH_COLUMN);
+            
+            $queryDuration = microtime(true) - $queryStart;
+            $this->telemetry->recordDBQueryTime("get_manufacturers", $queryDuration);
+            
+            $duration = microtime(true) - $methodStart;
+            $this->telemetry->recordResponseTime("/manufacturers", $duration);
+            
+            return $results;
+            
+        } catch (Exception $e) {
+            $this->telemetry->recordAPIRequest("/manufacturers", "500");
             throw $e;
         }
     }
@@ -286,77 +303,88 @@ class ProductsAPI {
 
 // Traitement de la requête
 try {
-    $api = new ProductsAPI($db);
-
- // Gestion du getAll
- if (isset($_GET['action']) && $_GET['action'] === 'getAll') {
-    error_log("Action: Récupération de tous les produits");
-    $allProducts = [];
+    $api = new ProductsAPI($db, $telemetry);
+    $requestPath = $_SERVER['REQUEST_URI'];
     
-    // Récupérer les produits de chaque catégorie
-    for ($categoryId = 1; $categoryId <= 3; $categoryId++) {
-        $products = $api->getProducts($categoryId, []);
-        $allProducts = array_merge($allProducts, $products);
-    }
-    
-    echo json_encode(['success' => true, 'data' => $allProducts]);
-    exit;
-}
-
-
-    // Gestion de la recherche
-    if (isset($_GET['action']) && $_GET['action'] === 'search') {
-        $query = isset($_GET['q']) ? trim($_GET['q']) : '';
-        if (strlen($query) < 2) {
-            echo json_encode(['success' => true, 'data' => []]);
-            exit;
+    // Gestion du getAll
+    if (isset($_GET['action']) && $_GET['action'] === 'getAll') {
+        $methodStart = microtime(true);
+        try {
+            $allProducts = [];
+            for ($categoryId = 1; $categoryId <= 3; $categoryId++) {
+                $products = $api->getProducts($categoryId, []);
+                $allProducts = array_merge($allProducts, $products);
+            }
+            $telemetry->recordAPIRequest("/products/getAll", "200");
+            $duration = microtime(true) - $methodStart;
+            $telemetry->recordResponseTime("/products/getAll", $duration);
+            echo json_encode(['success' => true, 'data' => $allProducts]);
+        } catch (Exception $e) {
+            $telemetry->recordAPIRequest("/products/getAll", "500");
+            throw $e;
         }
-        $response = $api->searchProducts($query);
-        echo json_encode(['success' => true, 'data' => $response]);
         exit;
     }
 
-    // Gestion des fabricants
-    if (isset($_GET['action']) && $_GET['action'] === 'manufacturers') {
-        $categoryId = isset($_GET['category']) ? (int)$_GET['category'] : null;
-        if (!$categoryId) {
-            throw new Exception("Catégorie non spécifiée pour la liste des fabricants");
+    // Gestion de la recherche
+    if (isset($_GET['action']) && $_GET['action'] === 'search') {
+        $methodStart = microtime(true);
+        $query = isset($_GET['q']) ? trim($_GET['q']) : '';
+        try {
+            $response = $api->searchProducts($query);
+            $telemetry->recordAPIRequest("/products/search", "200");
+            $duration = microtime(true) - $methodStart;
+            $telemetry->recordResponseTime("/products/search", $duration);
+            echo json_encode(['success' => true, 'data' => $response]);
+        } catch (Exception $e) {
+            $telemetry->recordAPIRequest("/products/search", "500");
+            throw $e;
         }
-        error_log("Action: Récupération des fabricants");
-        $response = $api->getManufacturers($categoryId);
-        error_log("Données fabricants: " . print_r($response, true));
-        echo json_encode(['success' => true, 'data' => $response]);
         exit;
     }
 
     // Gestion des produits par catégorie
     $categoryId = isset($_GET['category']) ? (int)$_GET['category'] : null;
-    error_log("CategoryId reçu: " . $categoryId);
-    
-    if (!$categoryId) {
-        throw new Exception("Catégorie non spécifiée");
+    if ($categoryId) {
+        $methodStart = microtime(true);
+        try {
+            $filters = [];
+            if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+                $filters = json_decode(file_get_contents('php://input'), true) ?? [];
+            }
+            $response = $api->getProducts($categoryId, $filters);
+            $telemetry->recordAPIRequest("/products/category/$categoryId", "200");
+            $duration = microtime(true) - $methodStart;
+            $telemetry->recordResponseTime("/products/category/$categoryId", $duration);
+            echo json_encode(['success' => true, 'data' => $response]);
+        } catch (Exception $e) {
+            $telemetry->recordAPIRequest("/products/category/$categoryId", "500");
+            throw $e;
+        }
+        exit;
     }
 
-    // Récupération des filtres
-    $filters = [];
-    if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-        $rawBody = file_get_contents('php://input');
-        error_log("POST body reçu: " . $rawBody);
-        $filters = json_decode($rawBody, true) ?? [];
-    }
-
-    // Récupération des produits
-    $response = $api->getProducts($categoryId, $filters);
-    echo json_encode(['success' => true, 'data' => $response]);
+    // Si aucune action valide n'est spécifiée
+    $telemetry->recordAPIRequest($requestPath, "400");
+    http_response_code(400);
+    echo json_encode([
+        'success' => false,
+        'message' => 'Action non valide'
+    ]);
 
 } catch (Exception $e) {
     error_log("API Error: " . $e->getMessage());
+    $telemetry->recordAPIRequest($requestPath, "500");
     http_response_code(500);
     echo json_encode([
         'success' => false,
         'message' => $e->getMessage()
     ]);
+} finally {
+    // Enregistrer le temps de réponse total et fermer la connexion
+    $duration = microtime(true) - $startTime;
+    $telemetry->recordResponseTime($requestPath, $duration);
+    $telemetry->recordActiveConnections(0);
+    error_log("=== Fin de la requête ===");
 }
-
-error_log("=== Fin de la requête ===");
 ?>
