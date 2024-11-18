@@ -1,133 +1,126 @@
-// Initialisation du carousel
+class Carousel {
+    constructor() {
+        this.currentSlide = 0;
+        this.autoplayInterval = null;
+    }
+
+    init() {
+        const container = document.getElementById('carousel-container');
+        if (!container) return;
+
+        container.innerHTML = this.createCarouselContent();
+
+        // Initialiser les éléments
+        this.items = Array.from(container.querySelectorAll('[data-carousel-item]'));
+        this.prevButton = container.querySelector('[data-carousel-prev]');
+        this.nextButton = container.querySelector('[data-carousel-next]');
+
+        // Mettre en place les écouteurs d'événements
+        this.setupEventListeners();
+
+        // Démarrer l'autoplay
+        this.startAutoplay();
+    }
+
+    createCarouselContent() {
+        return `
+            <div class="relative w-full" data-carousel="slide">
+                <div class="relative h-56 overflow-hidden rounded-lg md:h-[32rem]">
+                    <!-- Item 1 -->
+                    <div class="absolute inset-0 transition-opacity duration-700 ease-in-out" data-carousel-item style="opacity: 1;">
+                        <img src="./assets/images/News/Group 5.png" class="absolute block w-full -translate-x-1/2 -translate-y-1/2 top-1/2 left-1/2" alt="...">
+                    </div>
+                    <!-- Item 2 -->
+                    <div class="absolute inset-0 transition-opacity duration-700 ease-in-out" data-carousel-item style="opacity: 0; pointer-events: none;">
+                        <img src="./assets/images/News/Group 6.png" class="absolute block w-full -translate-x-1/2 -translate-y-1/2 top-1/2 left-1/2" alt="...">
+                    </div>
+                    <!-- Item 3 -->
+                    <div class="absolute inset-0 transition-opacity duration-700 ease-in-out" data-carousel-item style="opacity: 0; pointer-events: none;">
+                        <img src="./assets/images/News/Group 7.png" class="absolute block w-full -translate-x-1/2 -translate-y-1/2 top-1/2 left-1/2" alt="...">
+                    </div>
+                </div>
+                
+                <!-- Contrôles -->
+                <button type="button" class="absolute top-0 start-0 z-30 flex items-center justify-center h-full px-4 cursor-pointer group focus:outline-none" data-carousel-prev>
+                    <span class="inline-flex items-center justify-center w-10 h-10 rounded-full bg-white/30 group-hover:bg-white/50">
+                        <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
+                        </svg>
+                    </span>
+                </button>
+                <button type="button" class="absolute top-0 end-0 z-30 flex items-center justify-center h-full px-4 cursor-pointer group focus:outline-none" data-carousel-next>
+                    <span class="inline-flex items-center justify-center w-10 h-10 rounded-full bg-white/30 group-hover:bg-white/50">
+                        <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+                        </svg>
+                    </span>
+                </button>
+            </div>
+        `;
+    }
+
+    setupEventListeners() {
+        if (this.prevButton) {
+            this.prevButton.addEventListener('click', () => {
+                this.stopAutoplay();
+                this.prev();
+                this.startAutoplay();
+            });
+        }
+
+        if (this.nextButton) {
+            this.nextButton.addEventListener('click', () => {
+                this.stopAutoplay();
+                this.next();
+                this.startAutoplay();
+            });
+        }
+    }
+
+    showSlide(index) {
+        // Masquer le slide actuel
+        if (this.items[this.currentSlide]) {
+            this.items[this.currentSlide].style.opacity = '0';
+            this.items[this.currentSlide].style.pointerEvents = 'none';
+        }
+
+        // Afficher le nouveau slide
+        if (this.items[index]) {
+            this.items[index].style.opacity = '1';
+            this.items[index].style.pointerEvents = 'auto';
+        }
+
+        this.currentSlide = index;
+    }
+
+    next() {
+        const nextIndex = (this.currentSlide + 1) % this.items.length;
+        this.showSlide(nextIndex);
+    }
+
+    prev() {
+        const prevIndex = (this.currentSlide - 1 + this.items.length) % this.items.length;
+        this.showSlide(prevIndex);
+    }
+
+    startAutoplay() {
+        if (!this.autoplayInterval) {
+            this.autoplayInterval = setInterval(() => this.next(), 5000);
+        }
+    }
+
+    stopAutoplay() {
+        if (this.autoplayInterval) {
+            clearInterval(this.autoplayInterval);
+            this.autoplayInterval = null;
+        }
+    }
+}
+
+// Initialisation au chargement de la page
+document.addEventListener('DOMContentLoaded', initCarousel);
+
 function initCarousel() {
-    // Vérifier si les éléments existent
-    const carousel = document.querySelector('[data-carousel="slide"]');
-    if (!carousel) {
-        console.log('Carousel container not found, waiting...');
-        return;
-    }
-
-    const carouselItems = document.querySelectorAll('[data-carousel-item]');
-    const indicators = document.querySelectorAll('[data-carousel-slide-to]');
-    const prevButton = document.querySelector('[data-carousel-prev]');
-    const nextButton = document.querySelector('[data-carousel-next]');
-
-    // Vérifier si tous les éléments nécessaires sont présents
-    if (!carouselItems.length || !indicators.length || !prevButton || !nextButton) {
-        console.log('Carousel elements not found, waiting...');
-        return;
-    }
-
-    let currentIndex = 0;
-    let intervalId = null;
-
-    // Fonction pour afficher un élément spécifique
-    function showCarouselItem(index) {
-        // Masquer tous les éléments
-        carouselItems.forEach((item, i) => {
-            item.classList.add('hidden');
-            indicators[i].classList.remove('bg-white');
-            indicators[i].setAttribute('aria-current', 'false');
-        });
-
-        // Afficher l'élément actif
-        carouselItems[index].classList.remove('hidden');
-        indicators[index].classList.add('bg-white');
-        indicators[index].setAttribute('aria-current', 'true');
-        currentIndex = index;
-    }
-
-    // Initialiser le premier élément
-    showCarouselItem(0);
-
-    // Démarrer le défilement automatique
-    function startAutoSlide() {
-        if (!intervalId) {
-            intervalId = setInterval(() => {
-                currentIndex = (currentIndex + 1) % carouselItems.length;
-                showCarouselItem(currentIndex);
-            }, 3000);
-        }
-    }
-
-    // Arrêter le défilement automatique
-    function stopAutoSlide() {
-        if (intervalId) {
-            clearInterval(intervalId);
-            intervalId = null;
-        }
-    }
-
-    // Gestionnaire pour le bouton précédent
-    prevButton.addEventListener('click', () => {
-        stopAutoSlide();
-        currentIndex = (currentIndex - 1 + carouselItems.length) % carouselItems.length;
-        showCarouselItem(currentIndex);
-        startAutoSlide();
-    });
-
-    // Gestionnaire pour le bouton suivant
-    nextButton.addEventListener('click', () => {
-        stopAutoSlide();
-        currentIndex = (currentIndex + 1) % carouselItems.length;
-        showCarouselItem(currentIndex);
-        startAutoSlide();
-    });
-
-    // Gestionnaire pour les indicateurs
-    indicators.forEach((indicator, index) => {
-        indicator.addEventListener('click', () => {
-            stopAutoSlide();
-            showCarouselItem(index);
-            startAutoSlide();
-        });
-    });
-
-    // Pause au survol
-    carousel.addEventListener('mouseenter', stopAutoSlide);
-    carousel.addEventListener('mouseleave', startAutoSlide);
-
-    // Démarrer le carousel
-    startAutoSlide();
-    
-    console.log('Carousel initialized successfully');
+    const carousel = new Carousel();
+    carousel.init();
 }
-
-// Fonction pour tenter l'initialisation du carousel
-function tryInitCarousel() {
-    try {
-        initCarousel();
-    } catch (error) {
-        console.error('Error initializing carousel:', error);
-    }
-}
-
-// Écouter l'événement spécifique du chargement du carousel
-document.addEventListener('default-carousel-containerLoaded', () => {
-    console.log('Carousel container loaded, initializing...');
-    setTimeout(tryInitCarousel, 100);
-});
-
-// Écouter aussi l'événement de chargement de tous les composants comme backup
-document.addEventListener('allComponentsLoaded', () => {
-    console.log('All components loaded, checking carousel...');
-    setTimeout(tryInitCarousel, 100);
-});
-
-// Garder l'écouteur DOMContentLoaded comme dernier recours
-document.addEventListener('DOMContentLoaded', () => {
-    console.log('DOM loaded, waiting for carousel component...');
-    // Faire plusieurs tentatives d'initialisation
-    let attempts = 0;
-    const maxAttempts = 5;
-    const checkInterval = setInterval(() => {
-        attempts++;
-        if (document.querySelector('[data-carousel="slide"]')) {
-            clearInterval(checkInterval);
-            tryInitCarousel();
-        } else if (attempts >= maxAttempts) {
-            clearInterval(checkInterval);
-            console.log('Failed to initialize carousel after maximum attempts');
-        }
-    }, 200);
-});

@@ -1,5 +1,3 @@
-// ComputerFilter.js
-
 class ComputerFilter extends BaseProductFilter {
     async initializeFilters() {
         console.log('Initializing computer filters');
@@ -35,6 +33,20 @@ class ComputerFilter extends BaseProductFilter {
                 }
             }
         });
+    }
+
+    getFilterValues() {
+        return {
+            minPrice: document.getElementById('min-price')?.value || '',
+            maxPrice: document.getElementById('max-price')?.value || '',
+            manufacturer: document.getElementById('manufacturer')?.value || '',
+            minRam: document.getElementById('min-ram')?.value || '',
+            storage: document.getElementById('storage')?.value || '',
+            processor: document.getElementById('processor')?.value || '',
+            gpu: document.getElementById('gpu')?.value || '',
+            screenSize: document.getElementById('screen-size')?.value || '',
+            usage: document.getElementById('usage')?.value || ''
+        };
     }
 
     async loadSelectOptions(filterType) {

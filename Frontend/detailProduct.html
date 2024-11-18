@@ -5,14 +5,35 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Détail du produit - SmartSelect</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- <script src="../config.js"></script> -->
-
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        primary: {
+                            50: '#f0f9ff',
+                            100: '#e0f2fe',
+                            200: '#bae6fd',
+                            300: '#7dd3fc',
+                            400: '#38bdf8',
+                            500: '#0ea5e9',
+                            600: '#0284c7',
+                            700: '#0369a1',
+                            800: '#075985',
+                            900: '#0c4a6e',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
 </head>
 <body class="bg-gray-100 dark:bg-gray-800">
     <!-- En-tête de navigation -->
-
     <div id="header-container"></div>
-    <div class="bg-white dark:bg-gray-900 shadow">
+    <!-- <div class="bg-white dark:bg-gray-900 shadow"> -->
+    <div>
         <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
             <button id="back-button" class="text-gray-600 dark:text-gray-300 hover:text-gray-800 dark:hover:text-white">
                 ← Retour
@@ -69,15 +90,21 @@
                 <div class="md:w-1/2 p-6 border-t md:border-t-0 md:border-l border-gray-200 dark:border-gray-700">
                     <!-- Onglets de navigation -->
                     <div class="border-b border-gray-200 dark:border-gray-700">
-                        <nav class="flex -mb-px space-x-8" aria-label="Tabs">
-                            <button onclick="switchTab('specs')" class="tab-button active border-b-2 border-primary-500 py-4 px-1 text-sm font-medium">
+                        <nav class="flex -mb-px space-x-4 overflow-x-auto" aria-label="Tabs">
+                            <button onclick="switchTab('specs')" class="tab-button whitespace-nowrap border-b-2 border-transparent py-4 px-2 text-sm font-medium">
                                 Spécifications
                             </button>
-                            <button onclick="switchTab('description')" class="tab-button py-4 px-1 text-sm font-medium text-gray-500 hover:text-gray-700">
+                            <button onclick="switchTab('description')" class="tab-button whitespace-nowrap border-b-2 border-transparent py-4 px-2 text-sm font-medium">
                                 Description
                             </button>
-                            <button onclick="switchTab('sustainability')" class="tab-button py-4 px-1 text-sm font-medium text-gray-500 hover:text-gray-700">
+                            <button onclick="switchTab('durability')" class="tab-button whitespace-nowrap border-b-2 border-transparent py-4 px-2 text-sm font-medium">
                                 Durabilité
+                            </button>
+                            <button onclick="switchTab('stores')" class="tab-button whitespace-nowrap border-b-2 border-transparent py-4 px-2 text-sm font-medium">
+                                Magasin
+                            </button>
+                            <button onclick="switchTab('videos')" class="tab-button whitespace-nowrap border-b-2 border-transparent py-4 px-2 text-sm font-medium">
+                                Vidéo
                             </button>
                         </nav>
                     </div>
@@ -90,21 +117,21 @@
                                 <!-- Spécifications principales -->
                                 <div id="product-specs"></div>
 
-                                <!-- Appareil photo (pour smartphones/tablettes) -->
+                                <!-- Appareil photo -->
                                 <div id="camera-specs" class="hidden">
-                                    <h3 class="text-lg font-semibold mb-3">Appareil photo</h3>
+                                    <h3 class="text-lg font-semibold mb-3 dark:text-white">Appareil photo</h3>
                                     <div class="grid grid-cols-2 gap-4"></div>
                                 </div>
 
                                 <!-- Connectivité -->
                                 <div id="connectivity-specs" class="hidden">
-                                    <h3 class="text-lg font-semibold mb-3">Connectivité</h3>
+                                    <h3 class="text-lg font-semibold mb-3 dark:text-white">Connectivité</h3>
                                     <div class="grid grid-cols-2 gap-4"></div>
                                 </div>
 
-                                <!-- DAS (pour smartphones) -->
+                                <!-- DAS -->
                                 <div id="sar-ratings" class="hidden">
-                                    <h3 class="text-lg font-semibold mb-3">Valeurs DAS (W/kg)</h3>
+                                    <h3 class="text-lg font-semibold mb-3 dark:text-white">Valeurs DAS (W/kg)</h3>
                                     <div class="grid grid-cols-3 gap-4"></div>
                                 </div>
                             </div>
@@ -116,13 +143,13 @@
                         </div>
 
                         <!-- Durabilité -->
-                        <div id="tab-sustainability" class="tab-content hidden">
+                        <div id="tab-durability" class="tab-content hidden">
                             <div class="space-y-6">
                                 <!-- Indice de réparabilité -->
                                 <div>
-                                    <h3 class="text-lg font-semibold mb-3">Indice de réparabilité</h3>
+                                    <h3 class="text-lg font-semibold mb-3 dark:text-white">Indice de réparabilité</h3>
                                     <div class="flex items-center space-x-4">
-                                        <div id="repairability-index" class="text-2xl font-bold"></div>
+                                        <div id="repairability-index" class="text-2xl font-bold dark:text-white"></div>
                                         <div class="flex-1 bg-gray-200 rounded-full h-2.5 dark:bg-gray-700">
                                             <div id="repairability-bar" class="bg-primary-600 h-2.5 rounded-full"></div>
                                         </div>
@@ -131,21 +158,35 @@
 
                                 <!-- Disponibilité des pièces -->
                                 <div>
-                                    <h3 class="text-lg font-semibold mb-3">Disponibilité des pièces détachées</h3>
-                                    <div id="spare-parts" class="text-lg"></div>
+                                    <h3 class="text-lg font-semibold mb-3 dark:text-white">Disponibilité des pièces détachées</h3>
+                                    <div id="spare-parts" class="text-lg dark:text-gray-300"></div>
                                 </div>
 
                                 <!-- Informations supplémentaires -->
                                 <div class="grid grid-cols-2 gap-4">
                                     <div>
                                         <span class="text-gray-600 dark:text-gray-400">Origine de fabrication:</span>
-                                        <span id="manufacturing-origin" class="font-medium"></span>
+                                        <span id="manufacturing-origin" class="font-medium dark:text-white"></span>
                                     </div>
                                     <div>
                                         <span class="text-gray-600 dark:text-gray-400">Produit durable:</span>
-                                        <span id="is-sustainable" class="font-medium"></span>
+                                        <span id="is-sustainable" class="font-medium dark:text-white"></span>
                                     </div>
                                 </div>
+                            </div>
+                        </div>
+
+                        <!-- Magasins -->
+                        <div id="tab-stores" class="tab-content hidden">
+                            <div class="space-y-4" id="stores-list">
+                                <!-- Liste des magasins injectée par JavaScript -->
+                            </div>
+                        </div>
+
+                        <!-- Vidéos -->
+                        <div id="tab-videos" class="tab-content hidden">
+                            <div class="space-y-4" id="videos-list">
+                                <!-- Liste des vidéos injectée par JavaScript -->
                             </div>
                         </div>
                     </div>
@@ -154,17 +195,56 @@
         </div>
     </main>
 
-
-       <!-- Footer -->
-       <div id="footer-container"></div>
+    <!-- Footer -->
+    <div id="footer-container"></div>
        
     <!-- Scripts -->
     <script src="assets/js/scriptComponent.js"></script>    
     <script src="./assets/js/login.js"></script>
     <script src="./assets/js/header.js"></script>
-    <!-- <script  src="./assets/js/config.js"></script> -->
-    <script  src="./assets/js/script.js"></script>
+    <script src="./assets/js/toastManager.js"></script>
+    <script src="./assets/js/script.js"></script>
     <script src="./assets/js/DetailProduct.js"></script>
+
+    <!-- Templates pour les listes -->
+    <template id="store-item-template">
+        <a class="flex items-center p-4 bg-white dark:bg-gray-800 rounded-lg shadow hover:shadow-md transition-shadow">
+            <div class="flex-shrink-0 mr-4">
+                <div class="w-10 h-10 bg-blue-100 dark:bg-blue-900 rounded-full flex items-center justify-center">
+                    <svg class="w-6 h-6 text-blue-600 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"/>
+                    </svg>
+                </div>
+            </div>
+            <div class="flex-1">
+                <div class="font-medium text-blue-600 dark:text-blue-400 store-name"></div>
+                <div class="text-sm text-gray-500 dark:text-gray-400 store-url"></div>
+            </div>
+            <svg class="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+            </svg>
+        </a>
+    </template>
+
+    <template id="video-item-template">
+        <a class="flex items-center p-4 bg-white dark:bg-gray-800 rounded-lg shadow hover:shadow-md transition-shadow">
+            <div class="flex-shrink-0 mr-4">
+                <div class="w-10 h-10 bg-red-100 dark:bg-red-900 rounded-full flex items-center justify-center">
+                    <svg class="w-6 h-6 text-red-600 dark:text-red-400" fill="currentColor" viewBox="0 0 24 24">
+                        <path d="M8 6.82v10.36c0 .79.87 1.27 1.54.84l8.14-5.18c.62-.39.62-1.29 0-1.69L9.54 5.98C8.87 5.55 8 6.03 8 6.82z"/>
+                    </svg>
+                </div>
+            </div>
+            <div class="flex-1">
+                <div class="font-medium text-red-600 dark:text-red-400 video-title"></div>
+                <div class="text-sm text-gray-500 dark:text-gray-400 video-url"></div>
+            </div>
+            <svg class="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+            </svg>
+        </a>
+    </template>
+
     <script>
         function switchTab(tabName) {
             // Cacher tous les contenus
@@ -175,15 +255,61 @@
             // Désactiver tous les boutons
             document.querySelectorAll('.tab-button').forEach(button => {
                 button.classList.remove('border-primary-500', 'text-primary-600');
-                button.classList.add('text-gray-500');
+                button.classList.add('text-gray-500', 'border-transparent');
             });
             
             // Afficher le contenu sélectionné
             document.getElementById(`tab-${tabName}`).classList.remove('hidden');
             
             // Activer le bouton sélectionné
-            event.currentTarget.classList.remove('text-gray-500');
+            event.currentTarget.classList.remove('text-gray-500', 'border-transparent');
             event.currentTarget.classList.add('border-primary-500', 'text-primary-600');
+        }
+
+        // Activer l'onglet Spécifications par défaut
+        document.addEventListener('DOMContentLoaded', () => {
+            // Initialiser l'onglet Spécifications comme actif
+            const defaultTab = document.querySelector('[onclick="switchTab(\'specs\')"]');
+            if (defaultTab) {
+                defaultTab.classList.remove('text-gray-500', 'border-transparent');
+                defaultTab.classList.add('border-primary-500', 'text-primary-600');
+            }
+            
+            // Afficher le contenu des spécifications
+            const specsContent = document.getElementById('tab-specs');
+            if (specsContent) {
+                specsContent.classList.remove('hidden');
+            }
+
+            // Mettre à jour les compteurs des magasins et vidéos
+            const product = window.productDetail?.product;
+            if (product) {
+                updateCounts(product);
+            }
+        });
+
+        function updateCounts(product) {
+            // Mettre à jour le compteur des magasins
+            const storesCount = document.getElementById('stores-count');
+            if (storesCount && product.store_urls) {
+                try {
+                    const storeUrls = JSON.parse(product.store_urls);
+                    storesCount.textContent = storeUrls.length;
+                } catch (e) {
+                    storesCount.textContent = '0';
+                }
+            }
+
+            // Mettre à jour le compteur des vidéos
+            const videosCount = document.getElementById('videos-count');
+            if (videosCount && product.video_urls) {
+                try {
+                    const videoUrls = JSON.parse(product.video_urls);
+                    videosCount.textContent = videoUrls.length;
+                } catch (e) {
+                    videosCount.textContent = '0';
+                }
+            }
         }
     </script>
 </body>

@@ -22,7 +22,8 @@ function updateAuthSection() {
                 </svg>
             </button>
             <div id="user-dropdown" class="hidden absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg py-1 z-50">
-                <a href="#" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Mon profil</a>
+                <a href="profile.html" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Mon profil</a>
+                <a href="favorites.html" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Mes favoris</a>
                 <hr class="my-1">
                 <button id="logout-button" class="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-gray-100">
                     Se déconnecter

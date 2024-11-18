@@ -23,6 +23,7 @@ class RecommendedProducts {
             }
         } catch (error) {
             console.error('Erreur lors du chargement des produits recommandés:', error);
+            toastManager.error('Erreur lors du chargement des produits recommandés');
         }
     }
 
@@ -138,8 +139,10 @@ class RecommendedProducts {
 
         const user = localStorage.getItem('user');
         if (!user) {
-            alert('Vous devez être connecté pour voter. Veuillez vous connecter ou créer un compte.');
-            window.location.href = 'login.html';
+            toastManager.warning('Vous devez être connecté pour voter. Redirection vers la page de connexion...');
+            setTimeout(() => {
+                window.location.href = 'login.html';
+            }, 2000);
             return;
         }
 
@@ -167,12 +170,13 @@ class RecommendedProducts {
                 if (temperatureElement) {
                     temperatureElement.textContent = `${data.newTemperature}°`;
                 }
+                toastManager.success('Vote enregistré avec succès !');
             } else {
                 throw new Error(data.message || 'Erreur lors du vote');
             }
         } catch (error) {
             console.error('Erreur lors du vote:', error);
-            alert('Une erreur est survenue lors du vote. Veuillez réessayer.');
+            toastManager.error('Une erreur est survenue lors du vote. Veuillez réessayer.');
         }
     }
 }

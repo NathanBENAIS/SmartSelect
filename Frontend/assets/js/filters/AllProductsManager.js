@@ -1,13 +1,10 @@
 class AllProductsManager {
     constructor() {
-        // État initial
         this.products = [];
         this.currentPage = 1;
         this.itemsPerPage = 12;
         this.sortOrder = 'date-desc';
         this.loading = false;
-
-        // Initialisation
         this.initialize();
     }
 
@@ -15,10 +12,11 @@ class AllProductsManager {
         try {
             await this.loadAllManufacturers();
             await this.loadProducts();
+            await this.loadFavorites(); // Ajoutez ceci
             this.setupEventListeners();
         } catch (error) {
             console.error('Erreur d\'initialisation:', error);
-            this.showError('Erreur lors de l\'initialisation');
+            toastManager.error('Erreur lors de l\'initialisation de la page');
         }
     }
 
@@ -44,7 +42,6 @@ class AllProductsManager {
         try {
             const manufacturers = new Set();
             
-            // Charger les fabricants de toutes les catégories
             for (const categoryId of [1, 2, 3]) {
                 const response = await fetch(
                     `${window.appConfig.baseUrl}/Backend/api/products.php?action=manufacturers&category=${categoryId}`
@@ -55,7 +52,6 @@ class AllProductsManager {
                 }
             }
 
-            // Mettre à jour le select des fabricants
             const manufacturerSelect = document.getElementById('manufacturer');
             if (manufacturerSelect) {
                 manufacturerSelect.innerHTML = '<option value="">Toutes les marques</option>';
@@ -68,7 +64,7 @@ class AllProductsManager {
             }
         } catch (error) {
             console.error('Erreur lors du chargement des fabricants:', error);
-            this.showError('Erreur lors du chargement des fabricants');
+            toastManager.error('Erreur lors du chargement des fabricants');
         }
     }
 
@@ -90,7 +86,7 @@ class AllProductsManager {
             }
         } catch (error) {
             console.error('Erreur:', error);
-            this.showError(error.message);
+            toastManager.error(error.message || 'Erreur lors du chargement des produits');
         } finally {
             this.hideLoading();
         }
@@ -161,7 +157,21 @@ class AllProductsManager {
         
         return `
             <div class="relative block bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow">
-                <!-- Voting Buttons Section -->
+                <!-- Voting Buttons and Favorite Icon Section -->
+                   <div class="absolute top-3 left-3 z-10">
+                    <button
+                        type="button"
+                        title="${product.isFavorite ? 'Retirer des favoris' : 'Ajouter aux favoris'}"
+                        class="w-10 h-10 flex items-center justify-center rounded-full bg-white shadow-md border border-primary/50 ${product.isFavorite ? 'text-blue-500 hover:text-blue-700' : 'text-gray-400 hover:text-blue-500'}"
+                        data-product-id="${product.id}"
+                        data-is-favorite="${product.isFavorite ? '1' : '0'}"
+                        onclick="window.productsManager.toggleFavorite(event, this)">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6" viewBox="0 0 24 24" fill="${product.isFavorite ? 'currentColor' : 'none'}" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
+                        </svg>
+                    </button>
+                </div>
+                
                 <div class="absolute top-3 right-3 z-10 flex items-center space-x-3 p-2 bg-white border border-primary/50 rounded-full shadow-lg">
                     <button
                         type="button"
@@ -192,7 +202,7 @@ class AllProductsManager {
                         </svg>
                     </button>
                 </div>
-
+    
                 <a href="detailproduct.html?id=${product.id}" class="block">
                     <div class="aspect-w-3 aspect-h-2">
                         <img src="${product.image_url || defaultImageUrl}" 
@@ -298,7 +308,7 @@ class AllProductsManager {
         window.scrollTo({ top: 0, behavior: 'smooth' });
     }
 
-    resetFilters() {
+ resetFilters() {
         const elements = {
             'category-filter': '',
             'min-price': '',
@@ -313,6 +323,7 @@ class AllProductsManager {
         }
 
         this.handleFilters();
+        toastManager.success('Filtres réinitialisés');
     }
 
     updateResultsCount(count) {
@@ -328,8 +339,10 @@ class AllProductsManager {
 
         const user = localStorage.getItem('user');
         if (!user) {
-            alert('Vous devez être connecté pour voter. Veuillez vous connecter ou créer un compte.');
-            window.location.href = 'login.html';
+            toastManager.warning('Vous devez être connecté pour voter. Redirection vers la page de connexion...');
+            setTimeout(() => {
+                window.location.href = 'login.html';
+            }, 2000);
             return;
         }
 
@@ -362,14 +375,103 @@ class AllProductsManager {
                 if (productIndex !== -1) {
                     this.products[productIndex].temperature = data.newTemperature;
                 }
+                toastManager.success('Vote enregistré avec succès !');
             } else {
                 throw new Error(data.message || 'Erreur lors du vote');
             }
         } catch (error) {
             console.error('Erreur lors du vote:', error);
-            alert('Une erreur est survenue lors du vote. Veuillez réessayer.');
+            toastManager.error('Une erreur est survenue lors du vote. Veuillez réessayer.');
         }
     }
+    
+
+    
+        async toggleFavorite(event, button) {
+            event.preventDefault();
+            event.stopPropagation();
+        
+            try {
+                const user = localStorage.getItem('user');
+                if (!user) {
+                    toastManager.warning('Vous devez être connecté pour gérer les favoris. Redirection vers la page de connexion...');
+                    setTimeout(() => {
+                        window.location.href = 'login.html';
+                    }, 2000);
+                    return;
+                }
+        
+                const userData = JSON.parse(user);
+                const productId = button.dataset.productId;
+                const isFavorite = button.dataset.isFavorite === '1';
+                const action = isFavorite ? 'remove' : 'add';
+        
+                const response = await fetch(`${window.appConfig.baseUrl}/Backend/api/favorites.php`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        user_id: userData.id,
+                        product_id: productId,
+                        action: action
+                    })
+                });
+    
+                const data = await response.json();
+                
+                if (data.success) {
+                    // Mettre à jour l'état du bouton immédiatement
+                    button.dataset.isFavorite = (!isFavorite).toString();
+                    button.title = !isFavorite ? 'Retirer des favoris' : 'Ajouter aux favoris';
+                    button.classList.toggle('text-blue-500', !isFavorite);
+                    button.classList.toggle('text-gray-400', isFavorite);
+                    button.querySelector('svg').setAttribute('fill', !isFavorite ? 'currentColor' : 'none');
+                    
+                    // Recharger les produits pour maintenir la synchronisation
+                    await this.loadProducts();
+                    await this.loadFavorites();
+                    
+                    toastManager.success(`Produit ${!isFavorite ? 'ajouté aux' : 'retiré des'} favoris avec succès !`);
+                } else {
+                    throw new Error(data.message || 'Erreur lors de la mise à jour des favoris');
+                }
+                
+            } catch (error) {
+                console.error('Detailed error in toggleFavorite:', error);
+                toastManager.error('Une erreur est survenue lors de la mise à jour des favoris. Veuillez réessayer.');
+            }
+        }
+    
+
+    async loadFavorites() {
+        const user = localStorage.getItem('user');
+        if (!user) return;
+    
+        const userData = JSON.parse(user);
+    
+        try {
+            const response = await fetch(`${window.appConfig.baseUrl}/Backend/api/favorites.php?user_id=${userData.id}`);
+            const data = await response.json();
+    
+            if (data.success) {
+                const favorites = data.data;
+                favorites.forEach(favorite => {
+                    const productIndex = this.products.findIndex(p => p.id === favorite.id);
+                    if (productIndex !== -1) {
+                        this.products[productIndex].isFavorite = true;
+                    }
+                });
+                this.sortAndDisplayProducts(this.products);
+            } else {
+                throw new Error(data.message || 'Erreur lors du chargement des favoris');
+            }
+        } catch (error) {
+            console.error('Erreur lors du chargement des favoris:', error);
+            toastManager.error('Une erreur est survenue lors du chargement des favoris. Veuillez réessayer.');
+        }
+    }
+
 
     showLoading() {
         const loader = document.getElementById('loading-indicator');
@@ -395,10 +497,10 @@ class AllProductsManager {
                     Une erreur est survenue lors du chargement des produits: ${message}
                 </p>`;
         }
+        toastManager.error(message);
     }
 }
 
-// Initialisation globale
 document.addEventListener('DOMContentLoaded', function() {
     window.productsManager = new AllProductsManager();
 });

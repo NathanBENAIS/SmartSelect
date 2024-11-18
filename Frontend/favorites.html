@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mes Favoris - SmartSelect</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        primary: {
+                            50: "#f0f9ff",
+                            100: "#e0f2fe",
+                            200: "#bae6fd",
+                            300: "#7dd3fc",
+                            400: "#38bdf8",
+                            500: "#0ea5e9",
+                            600: "#0284c7",
+                            700: "#0369a1",
+                            800: "#075985",
+                            900: "#0c4a6e",
+                        },
+                    },
+                },
+            },
+        };
+    </script>
+</head>
+<body class="bg-gray-50">
+    <!-- Configuration globale -->
+    <script>
+        window.appConfig = {
+            baseUrl: "/smartselect",
+            apiUrl: "/smartselect/Backend/api",
+        };
+    </script>
+
+    <div id="header-container"></div>
+
+    <main>
+        <div class="container mx-auto px-12 py-8">
+            <!-- En-tête -->
+            <div class="bg-white p-8 rounded-lg shadow-md mb-8">
+                <div class="flex items-center justify-between mb-6">
+                    <div>
+                        <h1 class="text-3xl font-bold text-gray-900">Mes Favoris</h1>
+                        <p class="text-gray-600 mt-2" id="results-count"></p>
+                    </div>
+                    <a href="newProduct.html" class="inline-flex items-center px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
+                            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-11a1 1 0 10-2 0v2H7a1 1 0 100 2h2v2a1 1 0 102 0v-2h2a1 1 0 100-2h-2V7z" clip-rule="evenodd" />
+                        </svg>
+                        Découvrir plus de produits
+                    </a>
+                </div>
+
+                <!-- Options de tri -->
+                <div class="flex items-center justify-end">
+                    <div class="flex items-center gap-4">
+                        <label class="text-sm text-gray-600">Trier par:</label>
+                        <select id="sort-by" class="rounded-lg border border-gray-300 py-2 px-4 text-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500">
+                            <option value="date-desc">Plus récents</option>
+                            <option value="price-asc">Prix croissant</option>
+                            <option value="price-desc">Prix décroissant</option>
+                            <option value="name-asc">Nom A-Z</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Loading Indicator -->
+            <div id="loading-indicator" class="hidden">
+                <div class="flex justify-center items-center py-12">
+                    <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600"></div>
+                </div>
+            </div>
+
+            <!-- Grille des favoris -->
+            <div id="favorites-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                <!-- Sera rempli dynamiquement -->
+            </div>
+
+            <!-- Message si aucun favori -->
+            <div id="no-favorites" class="hidden">
+                <div class="text-center py-16">
+                    <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
+                    </svg>
+                    <h3 class="mt-4 text-lg font-medium text-gray-900">Aucun favori</h3>
+                    <p class="mt-2 text-gray-500">Vous n'avez pas encore ajouté de produits à vos favoris.</p>
+                    <a href="products.html" class="mt-6 inline-flex items-center px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors">
+                        Découvrir nos produits
+                    </a>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <div id="footer-container"></div>
+
+    <!-- Scripts -->
+    <script src="./assets/js/scriptComponent.js"></script>
+    <script src="./assets/js/toastManager.js"></script>
+    <script src="./assets/js/favorites.js"></script>
+    <script src="./assets/js/header.js"></script>
+    <script src="./assets/js/script.js"></script>
+    <script src="./assets/js/login.js"></script>
+</body>
+</html>

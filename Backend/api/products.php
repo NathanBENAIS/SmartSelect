@@ -31,16 +31,19 @@ if (!isset($db)) {
     exit;
 }
 
-class ProductsAPI {
+class ProductsAPI
+{
     private $db;
     private $telemetry;
-    
-    public function __construct($db, $telemetry) {
+
+    public function __construct($db, $telemetry)
+    {
         $this->db = $db;
         $this->telemetry = $telemetry;
     }
-    
-    public function getProducts($categoryId, $filters = []) {
+
+    public function getProducts($categoryId, $filters = [])
+    {
         $methodStart = microtime(true);
         try {
             if (!in_array($categoryId, [1, 2, 3])) {
@@ -51,28 +54,28 @@ class ProductsAPI {
             $queryStart = microtime(true);
             $sql = $this->buildBaseSqlQuery($categoryId);
             list($sql, $params) = $this->addFilterConditions($sql, $filters, $categoryId);
-            
+
             $stmt = $this->db->prepare($sql);
             $stmt->execute($params);
             $results = $stmt->fetchAll(PDO::FETCH_ASSOC);
-            
+
             $queryDuration = microtime(true) - $queryStart;
             $this->telemetry->recordDBQueryTime("get_products", $queryDuration);
-            
+
             $this->telemetry->recordProductCount("category_$categoryId", count($results));
             $duration = microtime(true) - $methodStart;
             $this->telemetry->recordResponseTime("/products/category/$categoryId", $duration);
-            
+
             return $results;
-            
+
         } catch (PDOException $e) {
             $this->telemetry->recordAPIRequest("/products/error", "500");
             error_log("Erreur DB: " . $e->getMessage());
             throw new Exception("Erreur lors de la récupération des produits: " . $e->getMessage());
         }
-    }
-
-    private function buildBaseSqlQuery($categoryId) {
+    }   
+    private function buildBaseSqlQuery($categoryId)
+    {
         // Le code existant reste le même
         switch ($categoryId) {
             case 1: // Smartphones
@@ -137,7 +140,8 @@ class ProductsAPI {
         }
     }
 
-    private function addFilterConditions($sql, $filters, $categoryId) {
+    private function addFilterConditions($sql, $filters, $categoryId)
+    {
         $params = [':category_id' => $categoryId];
         $conditions = [];
 
@@ -145,12 +149,12 @@ class ProductsAPI {
             $conditions[] = "p.price >= :min_price";
             $params[':min_price'] = $filters['minPrice'];
         }
-        
+
         if (!empty($filters['maxPrice'])) {
             $conditions[] = "p.price <= :max_price";
             $params[':max_price'] = $filters['maxPrice'];
         }
-        
+
         if (!empty($filters['manufacturer'])) {
             $conditions[] = "p.manufacturer = :manufacturer";
             $params[':manufacturer'] = $filters['manufacturer'];
@@ -206,11 +210,12 @@ class ProductsAPI {
         return [$sql, $params];
     }
 
-    public function searchProducts($query) {
+    public function searchProducts($query)
+    {
         $methodStart = microtime(true);
         try {
             error_log("Début de la recherche pour: " . $query);
-            
+
             $queryStart = microtime(true);
             $sql = "SELECT DISTINCT
                     p.id,
@@ -244,35 +249,36 @@ class ProductsAPI {
             $stmt = $this->db->prepare($sql);
             $stmt->execute($params);
             $results = $stmt->fetchAll(PDO::FETCH_ASSOC);
-            
+
             $queryDuration = microtime(true) - $queryStart;
             $this->telemetry->recordDBQueryTime("search_products", $queryDuration);
 
-            $formattedResults = array_map(function($item) {
+            $formattedResults = array_map(function ($item) {
                 return [
                     'id' => $item['id'],
                     'name' => $item['name'],
                     'manufacturer' => $item['manufacturer'] ?? '',
-                    'price' => number_format((float)$item['price'], 2, ',', ' ') . ' €',
+                    'price' => number_format((float) $item['price'], 2, ',', ' ') . ' €',
                     'image_url' => $item['image_url'] ?? '/Frontend/assets/images/Products/device-default.jpg',
                     'category' => $item['category_name'] ?? 'Non catégorisé'
                 ];
             }, $results);
-            
+
             $duration = microtime(true) - $methodStart;
             $this->telemetry->recordResponseTime("/products/search", $duration);
             $this->telemetry->recordSearchRequest($query, count($results));
             $this->telemetry->recordAPIRequest("/products/search", "200");
-            
+
             return $formattedResults;
-            
+
         } catch (Exception $e) {
             $this->telemetry->recordAPIRequest("/products/search", "500");
             throw $e;
         }
     }
 
-    public function getManufacturers($categoryId) {
+    public function getManufacturers($categoryId)
+    {
         $methodStart = microtime(true);
         try {
             $queryStart = microtime(true);
@@ -281,19 +287,19 @@ class ProductsAPI {
                     WHERE category_id = :category_id 
                     AND manufacturer IS NOT NULL 
                     ORDER BY manufacturer ASC";
-            
+
             $stmt = $this->db->prepare($sql);
             $stmt->execute([':category_id' => $categoryId]);
             $results = $stmt->fetchAll(PDO::FETCH_COLUMN);
-            
+
             $queryDuration = microtime(true) - $queryStart;
             $this->telemetry->recordDBQueryTime("get_manufacturers", $queryDuration);
-            
+
             $duration = microtime(true) - $methodStart;
             $this->telemetry->recordResponseTime("/manufacturers", $duration);
-            
+
             return $results;
-            
+
         } catch (Exception $e) {
             $this->telemetry->recordAPIRequest("/manufacturers", "500");
             throw $e;
@@ -305,7 +311,7 @@ class ProductsAPI {
 try {
     $api = new ProductsAPI($db, $telemetry);
     $requestPath = $_SERVER['REQUEST_URI'];
-    
+
     // Gestion du getAll
     if (isset($_GET['action']) && $_GET['action'] === 'getAll') {
         $methodStart = microtime(true);
@@ -341,10 +347,13 @@ try {
             throw $e;
         }
         exit;
+
+
     }
+   
 
     // Gestion des produits par catégorie
-    $categoryId = isset($_GET['category']) ? (int)$_GET['category'] : null;
+    $categoryId = isset($_GET['category']) ? (int) $_GET['category'] : null;
     if ($categoryId) {
         $methodStart = microtime(true);
         try {

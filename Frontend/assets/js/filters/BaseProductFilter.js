@@ -1,29 +1,89 @@
 class BaseProductFilter {
     constructor() {
+        // Définir les méthodes avant de les lier
+        this.handleFilters = this.handleFilters.bind(this);
+        this.resetFilters = this.resetFilters.bind(this);
+        this.loadProducts = this.loadProducts.bind(this);
+        this.sortAndDisplayProducts = this.sortAndDisplayProducts.bind(this);
+        this.updateResultsCount = this.updateResultsCount.bind(this);
+        this.updatePagination = this.updatePagination.bind(this);
+        this.changePage = this.changePage.bind(this);
+        this.handleTemperatureVote = this.handleTemperatureVote.bind(this);
+        this.toggleFavorite = this.toggleFavorite.bind(this);
+        
         console.log('BaseProductFilter Constructor called');
         this.initialized = false;
         this.products = [];
         this.currentPage = 1;
         this.itemsPerPage = 12;
-        this.sortOrder = 'price-asc';
+        this.sortOrder = 'date-desc';
         this.loading = false;
         
-        this.categoryId = determineCategoryFromPage();
+        this.categoryId = this.determineCategoryFromPage();
         console.log('Catégorie sélectionnée:', this.categoryId);
 
-        this.bindMethods();
-        this.init();
+        this.initialize();
+    }
+
+    determineCategoryFromPage() {
+        // Cette méthode doit être implémentée selon votre logique de page
+        return 1; // Valeur par défaut
     }
 
     bindMethods() {
+        // Liaison des méthodes à l'instance
         this.showLoading = this.showLoading.bind(this);
         this.hideLoading = this.hideLoading.bind(this);
-        this.loadProducts = this.loadProducts.bind(this);
+        this.handleFilters = this.handleFilters.bind(this);
+        this.resetFilters = this.resetFilters.bind(this);
         this.sortProducts = this.sortProducts.bind(this);
         this.changePage = this.changePage.bind(this);
-        this.resetFilters = this.resetFilters.bind(this);
-        this.updateResultsCount = this.updateResultsCount.bind(this);
         this.handleTemperatureVote = this.handleTemperatureVote.bind(this);
+        this.toggleFavorite = this.toggleFavorite.bind(this);
+        this.loadProducts = this.loadProducts.bind(this);
+        this.sortAndDisplayProducts = this.sortAndDisplayProducts.bind(this);
+        this.updateResultsCount = this.updateResultsCount.bind(this);
+        this.updatePagination = this.updatePagination.bind(this);
+    }
+
+    async initialize() {
+        try {
+            await this.loadAllManufacturers();
+            await this.loadProducts();
+            await this.loadFavorites();
+            this.setupEventListeners();
+            this.initialized = true;
+        } catch (error) {
+            console.error('Erreur d\'initialisation:', error);
+            this.showToast('error', 'Erreur lors de l\'initialisation de la page');
+        }
+    }
+
+    setupEventListeners() {
+        // Filtres
+        document.getElementById('min-price')?.addEventListener('input', () => this.handleFilters());
+        document.getElementById('max-price')?.addEventListener('input', () => this.handleFilters());
+        document.getElementById('manufacturer')?.addEventListener('change', () => this.handleFilters());
+        document.getElementById('storage')?.addEventListener('change', () => this.handleFilters());
+        document.getElementById('category-filter')?.addEventListener('change', () => this.handleFilters());
+        
+        // Tri
+        document.getElementById('sort-by')?.addEventListener('change', (e) => {
+            this.sortOrder = e.target.value;
+            this.handleFilters();
+        });
+
+        // Reset
+        document.getElementById('reset-filters')?.addEventListener('click', () => this.resetFilters());
+    }
+
+    showToast(type, message) {
+        if (typeof toastManager === 'undefined') {
+            console.warn('ToastManager non disponible, utilisation de alert comme fallback');
+            alert(message);
+            return;
+        }
+        toastManager[type](message);
     }
 
     showLoading() {
@@ -42,74 +102,42 @@ class BaseProductFilter {
         this.loading = false;
     }
 
-    async init() {
-        console.log('Init method started');
-        this.showLoading();
+    async loadAllManufacturers() {
         try {
-            await this.loadManufacturers();
-            this.initializeFilters();
-            await this.loadProducts();
-            this.initialized = true;
-            console.log('Init completed successfully');
-        } catch (error) {
-            console.error('Erreur lors de l\'initialisation:', error);
-        } finally {
-            this.hideLoading();
-        }
-    }
-
-    async loadManufacturers() {
-        console.log('LoadManufacturers started');
-        try {
-            const url = `${window.appConfig.baseUrl}/Backend/api/products.php?category=${this.categoryId}&action=manufacturers`;
-            console.log('Requête manufacturers URL:', url);
-
-            const response = await fetch(url);
-            if (!response.ok) {
-                throw new Error(`Erreur HTTP: ${response.status}`);
-            }
-
-            const responseText = await response.text();
-            console.log('Réponse brute:', responseText);
-
-            if (!responseText) {
-                throw new Error('Réponse vide du serveur');
-            }
-
-            const data = JSON.parse(responseText);
-            console.log('Données fabricants reçues:', data);
-
-            if (data.success && Array.isArray(data.data)) {
-                const manufacturerSelect = document.getElementById('manufacturer');
-                if (manufacturerSelect) {
-                    // Vider les options existantes sauf la première
-                    while (manufacturerSelect.options.length > 1) {
-                        manufacturerSelect.remove(1);
-                    }
-
-                    // Ajouter les nouveaux fabricants
-                    data.data.forEach(manufacturer => {
-                        const option = document.createElement('option');
-                        option.value = manufacturer;
-                        option.textContent = manufacturer;
-                        manufacturerSelect.appendChild(option);
-                    });
+            const manufacturers = new Set();
+            
+            for (const categoryId of [1, 2, 3]) {
+                const response = await fetch(
+                    `${window.appConfig.baseUrl}/Backend/api/products.php?action=manufacturers&category=${categoryId}`
+                );
+                const data = await response.json();
+                if (data.success && Array.isArray(data.data)) {
+                    data.data.forEach(manufacturer => manufacturers.add(manufacturer));
                 }
             }
+
+            const manufacturerSelect = document.getElementById('manufacturer');
+            if (manufacturerSelect) {
+                manufacturerSelect.innerHTML = '<option value="">Toutes les marques</option>';
+                [...manufacturers].sort().forEach(manufacturer => {
+                    const option = document.createElement('option');
+                    option.value = manufacturer;
+                    option.textContent = manufacturer;
+                    manufacturerSelect.appendChild(option);
+                });
+            }
         } catch (error) {
-            console.error('Error loading manufacturers:', error);
+            console.error('Erreur lors du chargement des fabricants:', error);
+            this.showToast('error', 'Erreur lors du chargement des fabricants');
         }
     }
 
     async loadProducts() {
-        console.log('LoadProducts started');
         try {
             this.showLoading();
             const filters = this.getFilterValues();
             const url = `${window.appConfig.baseUrl}/Backend/api/products.php?category=${this.categoryId}`;
-            console.log('Requête produits URL:', url);
-            console.log('Filtres:', filters);
-
+            
             const response = await fetch(url, {
                 method: 'POST',
                 headers: {
@@ -122,19 +150,9 @@ class BaseProductFilter {
                 throw new Error(`Erreur HTTP: ${response.status}`);
             }
 
-            const responseText = await response.text();
-            console.log('Réponse brute:', responseText);
-
-            if (!responseText) {
-                throw new Error('Réponse vide du serveur');
-            }
-
-            const data = JSON.parse(responseText);
-            console.log('Données produits reçues:', data);
-
+            const data = await response.json();
             if (data.success) {
                 this.products = data.data;
-                this.currentPage = 1;
                 this.sortAndDisplayProducts();
                 this.updateResultsCount();
             } else {
@@ -142,29 +160,76 @@ class BaseProductFilter {
             }
         } catch (error) {
             console.error('Error loading products:', error);
-            const container = document.getElementById('products-grid');
-            if (container) {
-                container.innerHTML = `<p class="text-center text-red-500 col-span-full py-8">
-                    Une erreur est survenue lors du chargement des produits: ${error.message}
-                </p>`;
-            }
+            this.showToast('error', 'Erreur lors du chargement des produits');
         } finally {
             this.hideLoading();
         }
     }
 
-    sortAndDisplayProducts() {
-        console.log('SortAndDisplayProducts started');
-        const sortedProducts = [...this.products].sort((a, b) => {
+    async loadFavorites() {
+        const user = localStorage.getItem('user');
+        if (!user) return;
+    
+        const userData = JSON.parse(user);
+    
+        try {
+            const response = await fetch(`${window.appConfig.baseUrl}/Backend/api/favorites.php?user_id=${userData.id}`);
+            const data = await response.json();
+    
+            if (data.success) {
+                const favorites = data.data;
+                favorites.forEach(favorite => {
+                    const productIndex = this.products.findIndex(p => p.id === favorite.id);
+                    if (productIndex !== -1) {
+                        this.products[productIndex].isFavorite = true;
+                    }
+                });
+                this.sortAndDisplayProducts();
+            } else {
+                throw new Error(data.message || 'Erreur lors du chargement des favoris');
+            }
+        } catch (error) {
+            console.error('Erreur lors du chargement des favoris:', error);
+            this.showToast('error', 'Une erreur est survenue lors du chargement des favoris');
+        }
+    }
+
+    handleFilters() {
+        const minPrice = parseFloat(document.getElementById('min-price')?.value) || 0;
+        const maxPrice = parseFloat(document.getElementById('max-price')?.value) || Infinity;
+        const manufacturer = document.getElementById('manufacturer')?.value;
+        const storage = document.getElementById('storage')?.value;
+        const category = document.getElementById('category-filter')?.value;
+
+        const filteredProducts = this.products.filter(product => {
+            const price = parseFloat(product.price);
+            return (
+                price >= minPrice &&
+                price <= maxPrice &&
+                (!manufacturer || product.manufacturer === manufacturer) &&
+                (!storage || (product.storage_capacity && parseInt(product.storage_capacity) >= parseInt(storage))) &&
+                (!category || product.category_id === parseInt(category))
+            );
+        });
+
+        this.sortAndDisplayProducts(filteredProducts);
+    }
+
+    sortAndDisplayProducts(products = this.products) {
+        const sortedProducts = [...products].sort((a, b) => {
             switch (this.sortOrder) {
+                case 'date-desc':
+                    return new Date(b.created_at || 0) - new Date(a.created_at || 0);
                 case 'price-asc':
-                    return (parseFloat(a.price) || 0) - (parseFloat(b.price) || 0);
+                    return parseFloat(a.price) - parseFloat(b.price);
                 case 'price-desc':
-                    return (parseFloat(b.price) || 0) - (parseFloat(a.price) || 0);
+                    return parseFloat(b.price) - parseFloat(a.price);
                 case 'rating-desc':
                     return (b.rating || 0) - (a.rating || 0);
                 case 'name-asc':
-                    return (a.name || '').localeCompare(b.name || '');
+                    return a.name.localeCompare(b.name);
+                case 'temperature-desc':
+                    return (b.temperature || 0) - (a.temperature || 0);
                 default:
                     return 0;
             }
@@ -172,40 +237,65 @@ class BaseProductFilter {
 
         this.displayProducts(sortedProducts);
         this.updatePagination();
+        this.updateResultsCount();
     }
 
     displayProducts(products) {
-        console.log('DisplayProducts started with', products.length, 'products');
         const container = document.getElementById('products-grid');
-        if (!container) {
-            console.error('Products grid container not found');
-            return;
-        }
+        if (!container) return;
 
-        container.innerHTML = '';
+        const start = (this.currentPage - 1) * this.itemsPerPage;
+        const end = start + this.itemsPerPage;
+        const productsToShow = products.slice(start, end);
 
-        if (!Array.isArray(products) || products.length === 0) {
+        if (productsToShow.length === 0) {
             container.innerHTML = '<p class="text-center text-gray-500 col-span-full py-8">Aucun produit trouvé.</p>';
             return;
         }
 
-        const start = (this.currentPage - 1) * this.itemsPerPage;
-        const end = start + this.itemsPerPage;
-        const paginatedProducts = products.slice(start, end);
+        container.innerHTML = productsToShow.map(product => this.createProductCard(product)).join('');
+    }
 
-        paginatedProducts.forEach(product => {
-            const cardElement = document.createElement('div');
-            cardElement.innerHTML = this.createProductCard(product);
-            container.appendChild(cardElement.firstElementChild);
-        });
+    generateSpecsSummary(product) {
+        const specs = [];
+        
+        if (product.storage_capacity) {
+            specs.push(`${product.storage_capacity} Go`);
+        }
+        if (product.ram || product.ram_capacity) {
+            specs.push(`${product.ram || product.ram_capacity} Go RAM`);
+        }
+        if (product.screen_size) {
+            specs.push(`${product.screen_size}"`);
+        }
+        if (product.processor_brand && product.processor_model) {
+            specs.push(`${product.processor_brand} ${product.processor_model}`);
+        }
+
+        return specs.join(' • ') || 'Caractéristiques non disponibles';
     }
 
     createProductCard(product) {
         const defaultImageUrl = `${window.appConfig.baseUrl}/Frontend/assets/images/Products/default-product.jpg`;
-    
+        
         return `
             <div class="relative block bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow">
-                <!-- Voting Buttons Section -->
+                <!-- Favorite Button -->
+                <div class="absolute top-3 left-3 z-10">
+                    <button
+                        type="button"
+                        title="${product.isFavorite ? 'Retirer des favoris' : 'Ajouter aux favoris'}"
+                        class="w-10 h-10 flex items-center justify-center rounded-full bg-white shadow-md border border-primary/50 ${product.isFavorite ? 'text-blue-500 hover:text-blue-700' : 'text-gray-400 hover:text-blue-500'}"
+                        data-product-id="${product.id}"
+                        data-is-favorite="${product.isFavorite ? '1' : '0'}"
+                        onclick="window.productFilter.toggleFavorite(event, this)">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6" viewBox="0 0 24 24" fill="${product.isFavorite ? 'currentColor' : 'none'}" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
+                        </svg>
+                    </button>
+                </div>
+
+                <!-- Temperature Voting Section -->
                 <div class="absolute top-3 right-3 z-10 flex items-center space-x-3 p-2 bg-white border border-primary/50 rounded-full shadow-lg">
                     <button
                         type="button"
@@ -236,10 +326,9 @@ class BaseProductFilter {
                         </svg>
                     </button>
                 </div>
-    
+
                 <a href="detailproduct.html?id=${product.id}" class="block">
                     <div class="aspect-w-3 aspect-h-2">
-                        <!-- L'image du produit avec une image par défaut en cas de problème -->
                         <img src="${product.image_url || defaultImageUrl}" 
                              alt="${product.name}"
                              class="w-full h-48 object-cover"
@@ -248,30 +337,41 @@ class BaseProductFilter {
                     </div>
                     <div class="p-4">
                         <h3 class="text-lg font-semibold text-gray-800 mb-2">${product.name}</h3>
-                        <p class="text-sm text-gray-600">${product.manufacturer}</p>
+                        <p class="text-sm text-gray-600 mb-2">${product.manufacturer || 'Non spécifié'}</p>
                         <div class="text-sm text-gray-600 mb-4">
                             ${this.generateSpecsSummary(product)}
                         </div>
                         <div class="flex items-center justify-between mt-4">
-                            <div class="text-lg font-bold text-primary-600">
-                                ${parseFloat(product.price).toLocaleString('fr-FR', { style: 'currency', currency: 'EUR' })}
+                            <div>
+                                ${product.promo_price ? `
+                                    <span class="text-lg font-bold text-red-500">${parseFloat(product.promo_price).toLocaleString('fr-FR')} €</span>
+                                    <span class="text-sm text-gray-400 line-through ml-2">${parseFloat(product.price).toLocaleString('fr-FR')} €</span>
+                                ` : `
+                                    <span class="text-lg font-bold text-gray-800">${parseFloat(product.price).toLocaleString('fr-FR')} €</span>
+                                `}
                             </div>
+                            ${product.rating ? `
+                                <div class="flex items-center">
+                                    <span class="text-yellow-400">★</span>
+                                    <span class="text-sm text-gray-600 ml-1">${Number(product.rating).toFixed(1)}</span>
+                                </div>
+                            ` : ''}
                         </div>
                     </div>
                 </a>
             </div>`;
     }
-    
 
     async handleTemperatureVote(event, button) {
         event.preventDefault();
         event.stopPropagation();
 
-        // Vérifier si l'utilisateur est connecté en utilisant localStorage
         const user = localStorage.getItem('user');
         if (!user) {
-            alert('Vous devez être connecté pour voter. Veuillez vous connecter ou créer un compte.');
-            window.location.href = 'login.html';
+            this.showToast('warning', 'Vous devez être connecté pour voter. Redirection vers la page de connexion...');
+            setTimeout(() => {
+                window.location.href = 'login.html';
+            }, 2000);
             return;
         }
 
@@ -286,7 +386,7 @@ class BaseProductFilter {
                     'Content-Type': 'application/json'
                 },
                 body: JSON.stringify({
-                    user_id: userData.id, // Ajouter l'ID de l'utilisateur
+                    user_id: userData.id,
                     product_id: productId,
                     vote_type: voteType
                 })
@@ -295,24 +395,84 @@ class BaseProductFilter {
             const data = await response.json();
             
             if (data.success) {
-                // Mettre à jour l'affichage de la température
                 const temperatureElement = document.querySelector(`[data-temperature="${productId}"]`);
                 if (temperatureElement) {
                     temperatureElement.textContent = `${data.newTemperature}°`;
+                    temperatureElement.title = `Actuellement évalué à ${data.newTemperature}° par la communauté.`;
                 }
+
+                const productIndex = this.products.findIndex(p => p.id === productId);
+                if (productIndex !== -1) {
+                    this.products[productIndex].temperature = data.newTemperature;
+                }
+                this.showToast('success', 'Vote enregistré avec succès !');
             } else {
                 throw new Error(data.message || 'Erreur lors du vote');
             }
         } catch (error) {
             console.error('Erreur lors du vote:', error);
-            alert('Une erreur est survenue lors du vote. Veuillez réessayer.');
+            this.showToast('error', 'Une erreur est survenue lors du vote');
+        }
+    }
+
+    async toggleFavorite(event, button) {
+        event.preventDefault();
+        event.stopPropagation();
+    
+        try {
+            const user = localStorage.getItem('user');
+            if (!user) {
+                this.showToast('warning', 'Vous devez être connecté pour gérer les favoris. Redirection vers la page de connexion...');
+                setTimeout(() => {
+                    window.location.href = 'login.html';
+                }, 2000);
+                return;
+            }
+    
+            const userData = JSON.parse(user);
+            const productId = button.dataset.productId;
+            const isFavorite = button.dataset.isFavorite === '1';
+            const action = isFavorite ? 'remove' : 'add';
+    
+            const response = await fetch(`${window.appConfig.baseUrl}/Backend/api/favorites.php`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    user_id: userData.id,
+                    product_id: productId,
+                    action: action
+                })
+            });
+
+            const data = await response.json();
+            
+            if (data.success) {
+                button.dataset.isFavorite = (!isFavorite).toString();
+                button.title = !isFavorite ? 'Retirer des favoris' : 'Ajouter aux favoris';
+                button.classList.toggle('text-blue-500', !isFavorite);
+                button.classList.toggle('text-gray-400', isFavorite);
+                button.querySelector('svg').setAttribute('fill', !isFavorite ? 'currentColor' : 'none');
+                
+                await this.loadProducts();
+                await this.loadFavorites();
+                
+                this.showToast('success', `Produit ${!isFavorite ? 'ajouté aux' : 'retiré des'} favoris avec succès !`);
+            } else {
+                throw new Error(data.message || 'Erreur lors de la mise à jour des favoris');
+            }
+            
+        } catch (error) {
+            console.error('Detailed error in toggleFavorite:', error);
+            this.showToast('error', 'Une erreur est survenue lors de la mise à jour des favoris');
         }
     }
 
     updateResultsCount() {
-        const countElement = document.getElementById('results-count');
-        if (countElement) {
-            countElement.textContent = `${this.products.length} produits trouvés`;
+        const element = document.getElementById('results-count');
+        if (element) {
+            element.textContent = `${this.products.length} produit${this.products.length > 1 ? 's' : ''} trouvé${this.products.length > 1 ? 's' : ''}`;
         }
     }
 
@@ -366,9 +526,22 @@ class BaseProductFilter {
         window.scrollTo({ top: 0, behavior: 'smooth' });
     }
 
-    sortProducts(order) {
-        this.sortOrder = order;
-        this.sortAndDisplayProducts();
+    resetFilters() {
+        const elements = {
+            'category-filter': '',
+            'min-price': '',
+            'max-price': '',
+            'manufacturer': '',
+            'storage': ''
+        };
+
+        for (const [id, value] of Object.entries(elements)) {
+            const element = document.getElementById(id);
+            if (element) element.value = value;
+        }
+
+        this.handleFilters();
+        this.showToast('success', 'Filtres réinitialisés');
     }
 
     // Méthodes abstraites à implémenter dans les classes enfants
@@ -378,12 +551,6 @@ class BaseProductFilter {
 
     getFilterValues() {
         throw new Error('getFilterValues must be implemented by child class');
-    }
-
-
-
-    resetFilters() {
-        throw new Error('resetFilters must be implemented by child class');
     }
 }
 

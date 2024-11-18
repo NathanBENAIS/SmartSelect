@@ -1,30 +1,34 @@
 // SmartphoneFilter.js
-
 class SmartphoneFilter extends BaseProductFilter {
+    determineCategoryFromPage() {
+        return 1; // Catégorie smartphones
+    }
+
+    async loadSelectOptions(selectId, endpoint, defaultOption) {
+        try {
+            const select = document.getElementById(selectId);
+            if (!select) return;
+
+            const response = await fetch(`${window.appConfig.baseUrl}/Backend/api/${endpoint}`);
+            const data = await response.json();
+
+            if (data.success && Array.isArray(data.data)) {
+                select.innerHTML = `<option value="">${defaultOption}</option>`;
+                data.data.sort().forEach(value => {
+                    const option = document.createElement('option');
+                    option.value = value;
+                    option.textContent = value;
+                    select.appendChild(option);
+                });
+            }
+        } catch (error) {
+            console.error(`Error loading options for ${selectId}:`, error);
+        }
+    }
+
     initializeFilters() {
         console.log('Initializing smartphone filters');
-        // Filtres de base
-        const filters = [
-            'min-price', 'max-price', 'manufacturer', 'min-ram', 
-            'storage', 'screen-size', 'refresh-rate', 'battery', 'os'
-        ];
-        
-        filters.forEach(id => {
-            const element = document.getElementById(id);
-            if (element) {
-                element.addEventListener('change', () => {
-                    console.log(`Filter ${id} changed to ${element.value}`);
-                    this.loadProducts();
-                });
-
-                // Ajouter un événement pour la touche Enter sur les champs de prix
-                if (id.includes('price')) {
-                    element.addEventListener('keypress', (e) => {
-                        if (e.key === 'Enter') this.loadProducts();
-                    });
-                }
-            }
-        });
+        this.initializeCategorySpecificFilters();
     }
 
     async initializeCategorySpecificFilters() {

@@ -20,6 +20,7 @@ class CurrentlyProducts {
             }
         } catch (error) {
             console.error('Erreur lors du chargement des produits:', error);
+            toastManager.error('Erreur lors du chargement des produits');
         }
     }
 
@@ -29,10 +30,8 @@ class CurrentlyProducts {
         const rightButton = document.getElementById('scroll-right-button');
 
         if (container && leftButton && rightButton) {
-            // Montant de défilement (largeur d'une carte + espace)
-            const scrollAmount = 320 + 24; // 320px (w-80) + 24px (space-x-6)
+            const scrollAmount = 320 + 24;
 
-            // Gestionnaire de clic pour le bouton gauche
             leftButton.addEventListener('click', () => {
                 container.scrollBy({
                     left: -scrollAmount,
@@ -40,7 +39,6 @@ class CurrentlyProducts {
                 });
             });
 
-            // Gestionnaire de clic pour le bouton droit
             rightButton.addEventListener('click', () => {
                 container.scrollBy({
                     left: scrollAmount,
@@ -48,7 +46,6 @@ class CurrentlyProducts {
                 });
             });
 
-            // Gérer la visibilité des boutons en fonction du scroll
             const toggleButtonVisibility = () => {
                 const isAtStart = container.scrollLeft === 0;
                 const isAtEnd = container.scrollLeft + container.clientWidth >= container.scrollWidth - 1;
@@ -60,21 +57,19 @@ class CurrentlyProducts {
                 rightButton.style.pointerEvents = isAtEnd ? 'none' : 'auto';
             };
 
-            // Ajouter les écouteurs d'événements
             container.addEventListener('scroll', toggleButtonVisibility);
             window.addEventListener('resize', toggleButtonVisibility);
 
-            // Vérification initiale
             setTimeout(toggleButtonVisibility, 100);
         }
     }
+
     createProductCard(product) {
         const defaultImageUrl = `${window.appConfig.baseUrl}/Frontend/assets/images/Products/default-product.jpg`;
         
         return `
             <div class="flex-none w-80 relative">
                 <div class="relative bg-white border border-gray-200 rounded-lg shadow hover:shadow-lg transition-shadow">
-                    <!-- Section des boutons de vote -->
                     <div class="absolute top-3 right-3 z-10 flex items-center space-x-3 p-2 bg-white border border-primary/50 rounded-full shadow-lg">
                         <button
                             type="button"
@@ -108,7 +103,7 @@ class CurrentlyProducts {
 
                     <a href="detailproduct.html?id=${product.id}" class="block">
                         <img 
-                            class=" w-full h-64 rounded-t-lg"
+                            class="w-full h-64 rounded-t-lg"
                             style="object-fit: contain"
                             src="${product.image_url || defaultImageUrl}"
                             alt="${product.name}"
@@ -130,7 +125,6 @@ class CurrentlyProducts {
         const container = document.getElementById('products-container');
         if (!container) return;
         
-        // Ajouter les produits
         container.innerHTML = this.products
             .map(product => this.createProductCard(product))
             .join('');
@@ -140,11 +134,12 @@ class CurrentlyProducts {
         event.preventDefault();
         event.stopPropagation();
 
-        // Vérifier si l'utilisateur est connecté
         const user = localStorage.getItem('user');
         if (!user) {
-            alert('Vous devez être connecté pour voter. Veuillez vous connecter ou créer un compte.');
-            window.location.href = 'login.html';
+            toastManager.warning('Vous devez être connecté pour voter. Redirection vers la page de connexion...');
+            setTimeout(() => {
+                window.location.href = 'login.html';
+            }, 2000);
             return;
         }
 
@@ -172,17 +167,17 @@ class CurrentlyProducts {
                 if (temperatureElement) {
                     temperatureElement.textContent = `${data.newTemperature}°`;
                 }
+                toastManager.success('Vote enregistré avec succès !');
             } else {
                 throw new Error(data.message || 'Erreur lors du vote');
             }
         } catch (error) {
             console.error('Erreur lors du vote:', error);
-            alert('Une erreur est survenue lors du vote. Veuillez réessayer.');
+            toastManager.error('Une erreur est survenue lors du vote. Veuillez réessayer.');
         }
     }
 }
 
-// Initialiser quand le DOM est chargé
 document.addEventListener('DOMContentLoaded', () => {
     window.currentlyProducts = new CurrentlyProducts();
 });
