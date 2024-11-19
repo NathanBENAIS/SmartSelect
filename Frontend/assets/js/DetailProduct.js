@@ -63,16 +63,18 @@ class DetailProduct {
         // Ajout des boutons de température et favoris
         const imageContainer = document.querySelector('.aspect-w-1');
         if (imageContainer) {
+            const nameElement = document.createElement('h1');
+            nameElement.className = 'text-2xl font-bold text-gray-900 dark:text-white mb-4';
+            nameElement.textContent = this.product.name;
+            imageContainer.parentNode.insertBefore(nameElement, imageContainer);
+            
             imageContainer.style.position = 'relative';
             
-            // Création du conteneur pour les boutons
+            // Buttons container creation remains the same
             const buttonsContainer = document.createElement('div');
             buttonsContainer.className = 'absolute top-0 left-0 right-0 p-3 flex justify-between z-10';
             
-            // Bouton favoris
             const favoriteButton = this.createFavoriteButton();
-            
-            // Conteneur des boutons de température
             const temperatureContainer = this.createTemperatureContainer();
             
             buttonsContainer.appendChild(favoriteButton);
@@ -80,12 +82,26 @@ class DetailProduct {
             imageContainer.insertBefore(buttonsContainer, imageContainer.firstChild);
         }       
 
-        // Image du produit
+        // Update product image
         const productImage = document.getElementById('product-image');
         if (productImage) {
             productImage.src = this.product.image_url || `${this.baseUrl}/Frontend/assets/images/Products/default.jpg`;
             productImage.alt = this.product.name;
         }
+
+        // Remove old product name display if it exists
+        const oldNameElement = document.getElementById('product-name');
+        if (oldNameElement) {
+            oldNameElement.remove();
+        }
+
+
+
+
+
+
+
+
 
         // Indice de réparabilité
         this.updateElement('repairability-index', 
@@ -101,6 +117,33 @@ class DetailProduct {
             this.product.spare_parts_availability ? `${this.product.spare_parts_availability} mois` : 'Non spécifié');
         this.updateElement('manufacturing-origin', this.product.manufacturing_origin || 'Non spécifié');
         this.updateElement('is-sustainable', this.product.is_sustainable ? 'Oui' : 'Non');
+        const descriptionTab = document.getElementById('tab-description');
+        if (descriptionTab) {
+            if (!this.product.description || this.product.description.trim() === '') {
+                descriptionTab.innerHTML = `
+                    <div class="text-center p-8">
+                        <div class="text-gray-500 dark:text-gray-400">Aucune description disponible pour ce produit</div>
+                    </div>`;
+            } else {
+                // Convert newlines to <br> tags and format the description
+                const formattedDescription = this.product.description
+                    .replace(/\n/g, '<br>')
+                    .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')  // Handle bold text
+                    .replace(/\*(.*?)\*/g, '<em>$1</em>');  // Handle italic text
+
+                descriptionTab.innerHTML = `
+                    <div class="prose prose-sm max-w-none dark:prose-invert">
+                        <p class="text-gray-600 dark:text-gray-400 leading-relaxed whitespace-pre-line">
+                            ${formattedDescription}
+                        </p>
+                    </div>`;
+            }
+        }
+
+
+
+
+
 
         // Rendu des onglets et du contenu
         this.renderStoreTabs();
@@ -468,28 +511,14 @@ class DetailProduct {
         const iconSize = 'w-6 h-6';
         switch (storeName.toLowerCase()) {
             case 'amazon':
-                return `<svg class="${iconSize} text-[#FF9900]" viewBox="0 0 48 48" fill="currentColor">
-                            <path d="M24.71 21.71c-3.5 2.21-8.14 3.38-12.28 3.38-5.84 0-11.09-2.16-15.07-5.75-.31-.27-.03-.64.34-.43 4.27 2.48 9.56 3.98 15.02 3.98 3.68 0 7.73-.76 11.45-2.34.56-.24 1.03.37.54 1.16"/>
-                            <path d="M26.06 20.08c-.45-.57-2.97-.27-4.1-.14-.34.04-.4-.26-.09-.47 2.01-1.41 5.3-1 5.69-.53.39.47-.1 3.77-1.98 5.35-.29.24-.56.11-.43-.21.42-1.04 1.36-3.39.91-3.97"/>
-                            <path d="M22.59 12.33v-1.42c0-.22.16-.36.36-.36h6.4c.2 0 .36.14.36.36v1.21c0 .2-.17.47-.47.89l-3.31 4.73c1.23-.03 2.53.16 3.64.79.25.14.32.36.34.57v1.51c0 .21-.23.46-.48.33-2.01-1.05-4.67-1.17-6.88.01-.23.12-.47-.12-.47-.34v-1.44c0-.24 0-.65.24-1.01l3.83-5.5h-3.33c-.2 0-.36-.14-.36-.36"/>
-                            <path d="M8.09 26.77c-1.09.31-2.23.47-3.37.47-1.59 0-3.16-.33-4.64-1.01-.28-.13-.05-.34.15-.23 1.58.52 3.25.84 4.93.84.87 0 1.73-.09 2.58-.27.21-.04.39.23.12.42"/>
-                            <path d="M8.87 25.95c-.14-.18-.92-.08-1.27-.04-.11.01-.12-.08-.03-.15.62-.44 1.65-.31 1.77-.16.12.15-.03 1.17-.61 1.66-.09.08-.18.04-.13-.06.13-.32.42-1.05.28-1.23"/>
-                        </svg>`;
+                return `<img src="${this.baseUrl}/Frontend/assets/images/Stores/amazon-logo.svg" class="${iconSize}" alt="Amazon logo">`;
             case 'fnac':
-                return `<svg class="${iconSize} text-[#E6A329]" viewBox="0 0 24 24" fill="currentColor">
-                            <path d="M5 3h14a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2zm2.5 3v12h3V6h-3zm5 0v12h3V6h-3z"/>
-                        </svg>`;
+                return `<img src="${this.baseUrl}/Frontend/assets/images/Stores/Fnac-logo.svg" class="${iconSize}" alt="Fnac logo">`;
             case 'darty':
             case 'lp':
-                return `<svg class="${iconSize} text-[#DA291C]" viewBox="0 0 24 24" fill="currentColor">
-                            <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8z"/>
-                            <path d="M8 7h8v2H8zm0 4h8v2H8zm0 4h4v2H8z"/>
-                        </svg>`;
+                return `<img src="${this.baseUrl}/Frontend/assets/images/Stores/darty-logo.svg" class="${iconSize}" alt="Darty logo">`;
             default:
-                return `<svg class="${iconSize} text-gray-600 dark:text-gray-400" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
-                                  d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"/>
-                        </svg>`;
+                return `<img src="${this.baseUrl}/Frontend/assets/images/Stores/default-store.svg" class="${iconSize}" alt="Store logo">`;
         }
     }
     
@@ -527,33 +556,39 @@ class DetailProduct {
                         <div class="text-gray-500 dark:text-gray-400">
                             Aucune vidéo disponible pour le moment
                         </div>
-                    </div>
-                `;
+                    </div>`;
                 return;
             }
     
-            let videosHTML = '<div class="space-y-4">';
-            videosHTML += videoUrls.map(url => `
-                <a href="${url}" target="_blank" rel="noopener noreferrer" 
-                   class="flex items-center p-4 bg-white dark:bg-gray-800 rounded-lg shadow hover:shadow-md transition-shadow">
-                    <div class="flex-shrink-0 mr-4">
-                        <div class="w-10 h-10 bg-red-100 dark:bg-red-900 rounded-full flex items-center justify-center">
-                            <svg class="w-6 h-6 text-red-600 dark:text-red-400" fill="currentColor" viewBox="0 0 24 24">
-                                <path d="M8 6.82v10.36c0 .79.87 1.27 1.54.84l8.14-5.18c.62-.39.62-1.29 0-1.69L9.54 5.98C8.87 5.55 8 6.03 8 6.82z"/>
-                            </svg>
+            let videosHTML = '<div class="space-y-6">';
+            videosHTML += videoUrls.map(url => {
+                const videoId = this.extractVideoId(url);
+                return `
+                    <div class="video-container bg-white dark:bg-gray-800 rounded-lg shadow p-4">
+                        <iframe
+                            class="w-full aspect-video rounded-lg mb-4"
+                            src="https://www.youtube.com/embed/${videoId}"
+                            title="YouTube video player"
+                            frameborder="0"
+                            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                            allowfullscreen
+                        ></iframe>
+                        <div class="flex items-center justify-between">
+                            <span class="text-gray-600 dark:text-gray-400">Source: YouTube</span>
+                            <a href="${url}" 
+                               target="_blank"
+                               rel="noopener noreferrer"
+                               class="text-blue-600 dark:text-blue-400 hover:underline flex items-center">
+                                Voir sur YouTube
+                                <svg class="w-4 h-4 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+                                          d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/>
+                                </svg>
+                            </a>
                         </div>
                     </div>
-                    <div class="flex-1">
-                        <div class="font-medium text-red-600 dark:text-red-400">
-                            ${this.extractVideoTitle(url)}
-                        </div>
-                        <div class="text-sm text-gray-500 dark:text-gray-400 truncate">${url}</div>
-                    </div>
-                    <svg class="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
-                    </svg>
-                </a>
-            `).join('');
+                `;
+            }).join('');
             videosHTML += '</div>';
             
             videosContainer.innerHTML = videosHTML;
@@ -562,24 +597,19 @@ class DetailProduct {
             videosContainer.innerHTML = `
                 <div class="text-center p-8">
                     <div class="text-red-500">Erreur lors du chargement des vidéos</div>
-                </div>
-            `;
+                </div>`;
         }
     }
     
     
-    extractVideoTitle(url) {
+    extractVideoId(url) {
         try {
-            if (url.includes('youtube.com') || url.includes('youtu.be')) {
-                // Extraire l'identifiant de la vidéo YouTube
-                const videoId = url.match(/(?:youtu\.be\/|youtube\.com(?:\/embed\/|\/v\/|\/watch\?v=|\/watch\?.+&v=))([^\/&#?]{11})/);
-                if (videoId) {
-                    return 'Vidéo YouTube';
-                }
-            }
-            return 'Voir la vidéo';
+            const regex = /(?:youtu\.be\/|youtube\.com(?:\/embed\/|\/v\/|\/watch\?v=|\/watch\?.+&v=))([^\/&#?]{11})/;
+            const match = url.match(regex);
+            return match ? match[1] : '';
         } catch (e) {
-            return 'Voir la vidéo';
+            console.error('Erreur lors de l\'extraction de l\'ID vidéo:', e);
+            return '';
         }
     }
     
@@ -787,6 +817,7 @@ class DetailProduct {
             });
         });
     }
+
 
     initializeEventListeners() {
         const backButton = document.getElementById('back-button');

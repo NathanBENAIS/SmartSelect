@@ -2,7 +2,13 @@ class FavoritesManager {
     constructor() {
         this.favorites = [];
         this.loading = false;
-        this.initialize();
+        if (this.isOnFavoritesPage()) {
+            this.initialize();
+        }
+    }
+
+    isOnFavoritesPage() {
+        return window.location.pathname.includes('favorites.html');
     }
 
     async initialize() {
@@ -16,7 +22,6 @@ class FavoritesManager {
     }
 
     setupEventListeners() {
-        // Tri
         document.getElementById('sort-by')?.addEventListener('change', (e) => {
             this.sortOrder = e.target.value;
             this.sortAndDisplayFavorites();
@@ -27,7 +32,15 @@ class FavoritesManager {
         try {
             const user = localStorage.getItem('user');
             if (!user) {
-                window.location.href = 'login.html';
+                if (this.isOnFavoritesPage()) {
+                    const container = document.getElementById('favorites-grid');
+                    if (container) {
+                        container.innerHTML = `
+                            <div class="col-span-full text-center py-8">
+                                <p class="text-gray-500 mb-4">Vous devez être connecté pour voir vos favoris</p>
+                            </div>`;
+                    }
+                }
                 return;
             }
 
@@ -39,8 +52,10 @@ class FavoritesManager {
 
             if (data.success) {
                 this.favorites = data.data;
-                this.displayFavorites();
-                this.updateResultsCount(this.favorites.length);
+                if (this.isOnFavoritesPage()) {
+                    this.displayFavorites();
+                    this.updateResultsCount(this.favorites.length);
+                }
             } else {
                 throw new Error(data.message || 'Erreur lors du chargement des favoris');
             }
@@ -51,7 +66,7 @@ class FavoritesManager {
             this.hideLoading();
         }
     }
-
+    
     sortAndDisplayFavorites() {
         const sortedFavorites = [...this.favorites].sort((a, b) => {
             switch (this.sortOrder) {
@@ -94,19 +109,20 @@ class FavoritesManager {
         
         return `
             <div class="relative block bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow">
-                <!-- Voting Buttons and Favorite Icon Section -->
-                   <div class="absolute top-3 left-3 z-10">
-                        <button
-                            type="button"
-                            title="Retirer des favoris"
-                            class="w-10 h-10 flex items-center justify-center rounded-full bg-white shadow-md border border-primary/50 text-blue-500 hover:text-blue-700"
-                            data-product-id="${product.id}"
-                            onclick="window.favoritesManager.removeFavorite(event, '${product.id}')">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
-                            </svg>
-                        </button>
-                   </div>
+                <!-- Favorite Icon Section -->
+                <div class="absolute top-3 left-3 z-10">
+                  <button
+                        type="button"
+                        title="Retirer des favoris"
+                        class="w-10 h-10 flex items-center justify-center rounded-full bg-white shadow-md border border-primary/50 text-blue-500 hover:text-blue-700"
+                        data-product-id="${product.id}"
+                        data-is-favorite="1"
+                        onclick="window.favoritesManager.handleFavoriteClick(event, '${product.id}')">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
+                        </svg>
+                    </button>
+                </div>
                 
                 <div class="absolute top-3 right-3 z-10 flex items-center space-x-3 p-2 bg-white border border-primary/50 rounded-full shadow-lg">
                     <button
@@ -144,7 +160,7 @@ class FavoritesManager {
                         <img src="${product.image_url || defaultImageUrl}" 
                              alt="${product.name}"
                              class="w-full h-48 object-cover"
-                             style="object-fit: contain;
+                             style="object-fit: contain;"
                              onerror="this.src='${defaultImageUrl}'">
                     </div>
                     <div class="p-4">
@@ -193,18 +209,20 @@ class FavoritesManager {
         return specs.join(' • ') || 'Caractéristiques non disponibles';
     }
 
-    async removeFavorite(event, productId) {  // Ajout du paramètre event
-        // Empêcher la propagation de l'événement
+    async handleFavoriteClick(event, productId) {
         event.preventDefault();
         event.stopPropagation();
         
+        const user = localStorage.getItem('user');
+        if (!user) {
+            toastManager.warning('Vous devez être connecté pour gérer les favoris');
+            return;
+        }
+
+        const button = event.currentTarget;
+        const isFavorite = button.dataset.isFavorite === '1';
+        
         try {
-            const user = localStorage.getItem('user');
-            if (!user) {
-                toastManager.warning('Vous devez être connecté pour gérer les favoris');
-                return;
-            }
-    
             const userData = JSON.parse(user);
             const response = await fetch(`${window.appConfig.baseUrl}/Backend/api/favorites.php`, {
                 method: 'POST',
@@ -214,26 +232,31 @@ class FavoritesManager {
                 body: JSON.stringify({
                     user_id: userData.id,
                     product_id: productId,
-                    action: 'remove'
+                    action: isFavorite ? 'remove' : 'add'
                 })
             });
     
             const data = await response.json();
             if (data.success) {
-                // Filtrer le produit retiré de la liste locale
-                this.favorites = this.favorites.filter(fav => fav.id.toString() !== productId.toString());
-                // Mettre à jour l'affichage
-                this.displayFavorites();
-                this.updateResultsCount(this.favorites.length);
-                toastManager.success('Produit retiré des favoris');
+                button.dataset.isFavorite = (!isFavorite).toString();
+                button.classList.toggle('text-blue-500', !isFavorite);
+                button.classList.toggle('text-gray-400', isFavorite);
+                button.querySelector('svg').setAttribute('fill', !isFavorite ? 'currentColor' : 'none');
+                
+                toastManager.success(`Produit ${!isFavorite ? 'ajouté aux' : 'retiré des'} favoris`);
+                
+                if (window.location.pathname.includes('favorites.html')) {
+                    await this.loadFavorites();
+                }
             } else {
-                throw new Error(data.message || 'Erreur lors de la suppression du favori');
+                throw new Error(data.message || 'Erreur lors de la mise à jour des favoris');
             }
         } catch (error) {
             console.error('Erreur:', error);
-            toastManager.error('Une erreur est survenue lors de la suppression du favori');
+            toastManager.error('Une erreur est survenue lors de la mise à jour des favoris');
         }
     }
+
     updateResultsCount(count) {
         const element = document.getElementById('results-count');
         if (element) {

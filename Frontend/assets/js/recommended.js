@@ -5,9 +5,15 @@ class RecommendedProducts {
     }
 
     async init() {
-        await this.loadProducts();
-        this.displayProducts();
-        this.initializeScrollButtons();
+        try {
+            await this.loadProducts();
+            await this.loadFavorites(); // Ajout du chargement des favoris
+            this.displayProducts();
+            this.initializeScrollButtons();
+        } catch (error) {
+            console.error('Erreur d\'initialisation:', error);
+            toastManager.error('Erreur lors de l\'initialisation de la page');
+        }
     }
 
     async loadProducts() {
@@ -24,6 +30,34 @@ class RecommendedProducts {
         } catch (error) {
             console.error('Erreur lors du chargement des produits recommandés:', error);
             toastManager.error('Erreur lors du chargement des produits recommandés');
+        }
+    }
+
+    async loadFavorites() {
+        const user = localStorage.getItem('user');
+        if (!user) return;
+    
+        const userData = JSON.parse(user);
+    
+        try {
+            const response = await fetch(`${window.appConfig.baseUrl}/Backend/api/favorites.php?user_id=${userData.id}`);
+            const data = await response.json();
+    
+            if (data.success) {
+                const favorites = data.data;
+                favorites.forEach(favorite => {
+                    const productIndex = this.products.findIndex(p => p.id === favorite.id);
+                    if (productIndex !== -1) {
+                        this.products[productIndex].isFavorite = true;
+                    }
+                });
+                this.displayProducts();
+            } else {
+                throw new Error(data.message || 'Erreur lors du chargement des favoris');
+            }
+        } catch (error) {
+            console.error('Erreur lors du chargement des favoris:', error);
+            toastManager.error('Une erreur est survenue lors du chargement des favoris');
         }
     }
 
@@ -73,6 +107,21 @@ class RecommendedProducts {
         return `
             <div class="flex-none w-80 relative">
                 <div class="relative bg-white border border-gray-200 rounded-lg shadow hover:shadow-lg transition-shadow">
+                    <!-- Ajout du bouton de favoris -->
+                    <div class="absolute top-3 left-3 z-10">
+                        <button
+                            type="button"
+                            title="${product.isFavorite ? 'Retirer des favoris' : 'Ajouter aux favoris'}"
+                            class="w-10 h-10 flex items-center justify-center rounded-full bg-white shadow-md border border-primary/50 ${product.isFavorite ? 'text-blue-500 hover:text-blue-700' : 'text-gray-400 hover:text-blue-500'}"
+                            data-product-id="${product.id}"
+                            data-is-favorite="${product.isFavorite ? '1' : '0'}"
+                            onclick="window.recommendedProducts.toggleFavorite(event, this)">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6" viewBox="0 0 24 24" fill="${product.isFavorite ? 'currentColor' : 'none'}" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
+                            </svg>
+                        </button>
+                    </div>
+
                     <div class="absolute top-3 right-3 z-10 flex items-center space-x-3 p-2 bg-white border border-primary/50 rounded-full shadow-lg">
                         <button
                             type="button"
@@ -106,7 +155,7 @@ class RecommendedProducts {
 
                     <a href="detailproduct.html?id=${product.id}" class="block">
                         <img 
-                            class="object-cover w-full h-64 rounded-t-lg"
+                            class="w-full h-64 rounded-t-lg"
                             style="object-fit: contain"
                             src="${product.image_url || defaultImageUrl}"
                             alt="${product.name}"
@@ -169,7 +218,14 @@ class RecommendedProducts {
                 const temperatureElement = document.querySelector(`[data-temperature="${productId}"]`);
                 if (temperatureElement) {
                     temperatureElement.textContent = `${data.newTemperature}°`;
+                    temperatureElement.title = `Actuellement évalué à ${data.newTemperature}° par la communauté.`;
                 }
+
+                const productIndex = this.products.findIndex(p => p.id === productId);
+                if (productIndex !== -1) {
+                    this.products[productIndex].temperature = data.newTemperature;
+                }
+
                 toastManager.success('Vote enregistré avec succès !');
             } else {
                 throw new Error(data.message || 'Erreur lors du vote');
@@ -177,6 +233,62 @@ class RecommendedProducts {
         } catch (error) {
             console.error('Erreur lors du vote:', error);
             toastManager.error('Une erreur est survenue lors du vote. Veuillez réessayer.');
+        }
+    }
+
+    async toggleFavorite(event, button) {
+        event.preventDefault();
+        event.stopPropagation();
+    
+        try {
+            const user = localStorage.getItem('user');
+            if (!user) {
+                toastManager.warning('Vous devez être connecté pour gérer les favoris. Redirection vers la page de connexion...');
+                setTimeout(() => {
+                    window.location.href = 'login.html';
+                }, 2000);
+                return;
+            }
+    
+            const userData = JSON.parse(user);
+            const productId = button.dataset.productId;
+            const isFavorite = button.dataset.isFavorite === '1';
+            const action = isFavorite ? 'remove' : 'add';
+    
+            const response = await fetch(`${window.appConfig.baseUrl}/Backend/api/favorites.php`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    user_id: userData.id,
+                    product_id: productId,
+                    action: action
+                })
+            });
+
+            const data = await response.json();
+            
+            if (data.success) {
+                button.dataset.isFavorite = (!isFavorite).toString();
+                button.title = !isFavorite ? 'Retirer des favoris' : 'Ajouter aux favoris';
+                button.classList.toggle('text-blue-500', !isFavorite);
+                button.classList.toggle('text-gray-400', isFavorite);
+                button.querySelector('svg').setAttribute('fill', !isFavorite ? 'currentColor' : 'none');
+                
+                const productIndex = this.products.findIndex(p => p.id === productId);
+                if (productIndex !== -1) {
+                    this.products[productIndex].isFavorite = !isFavorite;
+                }
+                
+                toastManager.success(`Produit ${!isFavorite ? 'ajouté aux' : 'retiré des'} favoris avec succès !`);
+            } else {
+                throw new Error(data.message || 'Erreur lors de la mise à jour des favoris');
+            }
+            
+        } catch (error) {
+            console.error('Detailed error in toggleFavorite:', error);
+            toastManager.error('Une erreur est survenue lors de la mise à jour des favoris. Veuillez réessayer.');
         }
     }
 }

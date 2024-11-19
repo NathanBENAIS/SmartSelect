@@ -12,6 +12,7 @@ class BaseProductFilter {
         this.toggleFavorite = this.toggleFavorite.bind(this);
         
         console.log('BaseProductFilter Constructor called');
+        this.bindMethods();
         this.initialized = false;
         this.products = [];
         this.currentPage = 1;
@@ -19,9 +20,15 @@ class BaseProductFilter {
         this.sortOrder = 'date-desc';
         this.loading = false;
         
-        this.categoryId = this.determineCategoryFromPage();
-        console.log('Catégorie sélectionnée:', this.categoryId);
-
+        
+        // Get category from current page
+        const path = window.location.pathname.toLowerCase();
+        if (path.includes('smartphones')) this.categoryId = '1';
+        else if (path.includes('ordinateurs')) this.categoryId = '2';
+        else if (path.includes('tablettes')) this.categoryId = '3';
+        else this.categoryId = '1';
+        
+        console.log('Selected category:', this.categoryId);
         this.initialize();
     }
 
@@ -32,18 +39,29 @@ class BaseProductFilter {
 
     bindMethods() {
         // Liaison des méthodes à l'instance
-        this.showLoading = this.showLoading.bind(this);
-        this.hideLoading = this.hideLoading.bind(this);
-        this.handleFilters = this.handleFilters.bind(this);
-        this.resetFilters = this.resetFilters.bind(this);
-        this.sortProducts = this.sortProducts.bind(this);
-        this.changePage = this.changePage.bind(this);
-        this.handleTemperatureVote = this.handleTemperatureVote.bind(this);
-        this.toggleFavorite = this.toggleFavorite.bind(this);
-        this.loadProducts = this.loadProducts.bind(this);
-        this.sortAndDisplayProducts = this.sortAndDisplayProducts.bind(this);
-        this.updateResultsCount = this.updateResultsCount.bind(this);
-        this.updatePagination = this.updatePagination.bind(this);
+        // this.showLoading = this.showLoading.bind(this);
+        // this.hideLoading = this.hideLoading.bind(this);
+        // this.handleFilters = this.handleFilters.bind(this);
+        // this.resetFilters = this.resetFilters.bind(this);
+        // this.sortProducts = this.sortProducts.bind(this);
+        // this.changePage = this.changePage.bind(this);
+        // this.handleTemperatureVote = this.handleTemperatureVote.bind(this);
+        // this.toggleFavorite = this.toggleFavorite.bind(this);
+        // this.loadProducts = this.loadProducts.bind(this);
+        // this.sortAndDisplayProducts = this.sortAndDisplayProducts.bind(this);
+        // this.updateResultsCount = this.updateResultsCount.bind(this);
+        // this.updatePagination = this.updatePagination.bind(this);
+  
+   // Original method bindings
+   this.handleFilters = this.handleFilters.bind(this);
+   this.resetFilters = this.resetFilters.bind(this);
+   this.loadProducts = this.loadProducts.bind(this);
+   this.sortAndDisplayProducts = this.sortAndDisplayProducts.bind(this);
+   this.updateResultsCount = this.updateResultsCount.bind(this);
+   this.updatePagination = this.updatePagination.bind(this);
+   this.changePage = this.changePage.bind(this);
+   this.handleTemperatureVote = this.handleTemperatureVote.bind(this);
+   this.toggleFavorite = this.toggleFavorite.bind(this);
     }
 
     async initialize() {
@@ -104,34 +122,28 @@ class BaseProductFilter {
 
     async loadAllManufacturers() {
         try {
-            const manufacturers = new Set();
+            const response = await fetch(
+                `${window.appConfig.baseUrl}/Backend/api/products.php?action=manufacturers&category=${this.categoryId}`
+            );
+            const data = await response.json();
             
-            for (const categoryId of [1, 2, 3]) {
-                const response = await fetch(
-                    `${window.appConfig.baseUrl}/Backend/api/products.php?action=manufacturers&category=${categoryId}`
-                );
-                const data = await response.json();
-                if (data.success && Array.isArray(data.data)) {
-                    data.data.forEach(manufacturer => manufacturers.add(manufacturer));
+            if (data.success && Array.isArray(data.data)) {
+                const manufacturerSelect = document.getElementById('manufacturer');
+                if (manufacturerSelect) {
+                    manufacturerSelect.innerHTML = '<option value="">Toutes les marques</option>';
+                    data.data.sort().forEach(manufacturer => {
+                        const option = document.createElement('option');
+                        option.value = manufacturer;
+                        option.textContent = manufacturer;
+                        manufacturerSelect.appendChild(option);
+                    });
                 }
             }
-
-            const manufacturerSelect = document.getElementById('manufacturer');
-            if (manufacturerSelect) {
-                manufacturerSelect.innerHTML = '<option value="">Toutes les marques</option>';
-                [...manufacturers].sort().forEach(manufacturer => {
-                    const option = document.createElement('option');
-                    option.value = manufacturer;
-                    option.textContent = manufacturer;
-                    manufacturerSelect.appendChild(option);
-                });
-            }
         } catch (error) {
-            console.error('Erreur lors du chargement des fabricants:', error);
-            this.showToast('error', 'Erreur lors du chargement des fabricants');
+            console.error('Error loading manufacturers:', error);
+            this.showToast('error', 'Error loading manufacturers');
         }
     }
-
     async loadProducts() {
         try {
             this.showLoading();
@@ -140,23 +152,17 @@ class BaseProductFilter {
             
             const response = await fetch(url, {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
+                headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(filters)
             });
 
-            if (!response.ok) {
-                throw new Error(`Erreur HTTP: ${response.status}`);
-            }
-
+            if (!response.ok) throw new Error(`HTTP error: ${response.status}`);
+            
             const data = await response.json();
             if (data.success) {
                 this.products = data.data;
                 this.sortAndDisplayProducts();
                 this.updateResultsCount();
-            } else {
-                throw new Error(data.message || 'Erreur lors du chargement des produits');
             }
         } catch (error) {
             console.error('Error loading products:', error);

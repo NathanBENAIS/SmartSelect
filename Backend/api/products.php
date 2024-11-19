@@ -305,7 +305,42 @@ class ProductsAPI
             throw $e;
         }
     }
+
+    public function getLatestProducts($limit = 10) {
+        $methodStart = microtime(true);
+        try {
+            error_log("Récupération des $limit derniers produits");
+    
+            $queryStart = microtime(true);
+            $sql = "SELECT * FROM products 
+                    ORDER BY created_at DESC 
+                    LIMIT :limit";
+    
+            $stmt = $this->db->prepare($sql);
+            $stmt->bindParam(':limit', $limit, PDO::PARAM_INT);
+            $stmt->execute();
+            $results = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    
+            $queryDuration = microtime(true) - $queryStart;
+            $this->telemetry->recordDBQueryTime("get_latest_products", $queryDuration);
+    
+            $duration = microtime(true) - $methodStart;
+            $this->telemetry->recordResponseTime("/products/latest", $duration);
+            $this->telemetry->recordAPIRequest("/products/latest", "200");
+    
+            return $results;
+    
+        } catch (Exception $e) {
+            $this->telemetry->recordAPIRequest("/products/latest", "500");
+            error_log("Erreur dans getLatestProducts: " . $e->getMessage());
+            throw $e;
+        }
+    }
+
+
 }
+
+
 
 // Traitement de la requête
 try {
@@ -372,7 +407,21 @@ try {
         }
         exit;
     }
-
+    if (isset($_GET['action']) && $_GET['action'] === 'getLatest') {
+        $methodStart = microtime(true);
+        try {
+            $limit = isset($_GET['limit']) ? min((int)$_GET['limit'], 50) : 10; // Limite max de 50 produits
+            $response = $api->getLatestProducts($limit);
+            $telemetry->recordAPIRequest("/products/latest", "200");
+            $duration = microtime(true) - $methodStart;
+            $telemetry->recordResponseTime("/products/latest", $duration);
+            echo json_encode(['success' => true, 'data' => $response]);
+        } catch (Exception $e) {
+            $telemetry->recordAPIRequest("/products/latest", "500");
+            throw $e;
+        }
+        exit;
+    }
     // Si aucune action valide n'est spécifiée
     $telemetry->recordAPIRequest($requestPath, "400");
     http_response_code(400);
