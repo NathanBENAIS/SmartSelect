@@ -66,7 +66,7 @@ class BaseProductFilter {
 
     async initialize() {
         try {
-            await this.loadAllManufacturers();
+   
             await this.loadProducts();
             await this.loadFavorites();
             this.setupEventListeners();
@@ -212,8 +212,10 @@ class BaseProductFilter {
             return (
                 price >= minPrice &&
                 price <= maxPrice &&
-                (!manufacturer || product.manufacturer === manufacturer) &&
-                (!storage || (product.storage_capacity && parseInt(product.storage_capacity) >= parseInt(storage))) &&
+                (!manufacturer || (product.manufacturer && 
+                    product.manufacturer.toLowerCase().includes(manufacturer.toLowerCase()))) &&
+                (!storage || (product.storage_capacity && 
+                    parseInt(product.storage_capacity) >= parseInt(storage))) &&
                 (!category || product.category_id === parseInt(category))
             );
         });

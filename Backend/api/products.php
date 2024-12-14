@@ -144,24 +144,26 @@ class ProductsAPI
     {
         $params = [':category_id' => $categoryId];
         $conditions = [];
-
+    
+        // Filtres de base
         if (!empty($filters['minPrice'])) {
             $conditions[] = "p.price >= :min_price";
             $params[':min_price'] = $filters['minPrice'];
         }
-
+    
         if (!empty($filters['maxPrice'])) {
             $conditions[] = "p.price <= :max_price";
             $params[':max_price'] = $filters['maxPrice'];
         }
-
+    
         if (!empty($filters['manufacturer'])) {
             $conditions[] = "p.manufacturer = :manufacturer";
             $params[':manufacturer'] = $filters['manufacturer'];
         }
-
-        switch ($categoryId) {
+    
+        switch($categoryId) {
             case 1: // Smartphones
+                // Code existant pour les smartphones
                 if (!empty($filters['minRam'])) {
                     $conditions[] = "ss.ram >= :min_ram";
                     $params[':min_ram'] = $filters['minRam'];
@@ -170,27 +172,24 @@ class ProductsAPI
                     $conditions[] = "ss.storage_capacity >= :storage";
                     $params[':storage'] = $filters['storage'];
                 }
-                break;
-
-            case 2: // Ordinateurs
-                if (!empty($filters['minRam'])) {
-                    $conditions[] = "ms.ram_capacity >= :min_ram";
-                    $params[':min_ram'] = $filters['minRam'];
+                if (!empty($filters['screenSize'])) {
+                    $conditions[] = "ss.screen_size >= :screen_size";
+                    $params[':screen_size'] = $filters['screenSize'];
                 }
-                if (!empty($filters['storage'])) {
-                    $conditions[] = "ms.storage_capacity >= :storage";
-                    $params[':storage'] = $filters['storage'];
+                if (!empty($filters['refreshRate'])) {
+                    $conditions[] = "ss.refresh_rate >= :refresh_rate";
+                    $params[':refresh_rate'] = $filters['refreshRate'];
                 }
-                if (!empty($filters['processor'])) {
-                    $conditions[] = "ps.brand = :processor_brand";
-                    $params[':processor_brand'] = $filters['processor'];
+                if (!empty($filters['battery'])) {
+                    $conditions[] = "ss.battery_capacity >= :battery";
+                    $params[':battery'] = $filters['battery'];
                 }
-                if (!empty($filters['gpu'])) {
-                    $conditions[] = "gs.brand = :gpu_brand";
-                    $params[':gpu_brand'] = $filters['gpu'];
+                if (!empty($filters['os'])) {
+                    $conditions[] = "ss.operating_system = :os";
+                    $params[':os'] = $filters['os'];
                 }
                 break;
-
+    
             case 3: // Tablettes
                 if (!empty($filters['minRam'])) {
                     $conditions[] = "ms.ram_capacity >= :min_ram";
@@ -200,13 +199,32 @@ class ProductsAPI
                     $conditions[] = "ms.storage_capacity >= :storage";
                     $params[':storage'] = $filters['storage'];
                 }
+                if (!empty($filters['screenSize'])) {
+                    $conditions[] = "ds.screen_size >= :screen_size";
+                    $params[':screen_size'] = $filters['screenSize'];
+                }
+                if (!empty($filters['connectivity'])) {
+                    $conditions[] = "p.connectivity = :connectivity";
+                    $params[':connectivity'] = $filters['connectivity'];
+                }
+                if (!empty($filters['usageType'])) {
+                    $conditions[] = "p.usage_type = :usage_type";
+                    $params[':usage_type'] = $filters['usageType'];
+                }
+                if (!empty($filters['os'])) {
+                    $conditions[] = "p.operating_system = :os";
+                    $params[':os'] = $filters['os'];
+                }
+                break;
+            
+            case 2: // Ordinateurs (laissé vide pour référence future)
                 break;
         }
-
+    
         if (!empty($conditions)) {
             $sql .= " AND " . implode(" AND ", $conditions);
         }
-
+    
         return [$sql, $params];
     }
 

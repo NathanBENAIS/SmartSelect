@@ -1,68 +1,11 @@
-// SmartphoneFilter.js
 class SmartphoneFilter extends BaseProductFilter {
-    determineCategoryFromPage() {
-        return 1; // Catégorie smartphones
-    }
-
-    async loadSelectOptions(selectId, endpoint, defaultOption) {
-        try {
-            const select = document.getElementById(selectId);
-            if (!select) return;
-
-            const response = await fetch(`${window.appConfig.baseUrl}/Backend/api/${endpoint}`);
-            const data = await response.json();
-
-            if (data.success && Array.isArray(data.data)) {
-                select.innerHTML = `<option value="">${defaultOption}</option>`;
-                data.data.sort().forEach(value => {
-                    const option = document.createElement('option');
-                    option.value = value;
-                    option.textContent = value;
-                    select.appendChild(option);
-                });
-            }
-        } catch (error) {
-            console.error(`Error loading options for ${selectId}:`, error);
-        }
-    }
-
-    initializeFilters() {
-        console.log('Initializing smartphone filters');
-        this.initializeCategorySpecificFilters();
-    }
-
-    async initializeCategorySpecificFilters() {
-        console.log('Initializing smartphone specific filters');
-        
-        try {
-            // Charger les options pour les différents filtres
-            await Promise.all([
-                this.loadSelectOptions('min-ram', 'filters.php?type=ram&category=1', 'Toutes les RAM'),
-                this.loadSelectOptions('storage', 'filters.php?type=storage&category=1', 'Tout le stockage'),
-                this.loadSelectOptions('screen-size', 'filters.php?type=screen_size&category=1', 'Toutes les tailles'),
-                this.loadSelectOptions('refresh-rate', 'filters.php?type=refresh_rate&category=1', 'Tous les taux'),
-                this.loadSelectOptions('battery', 'filters.php?type=battery&category=1', 'Toutes les capacités'),
-                this.loadSelectOptions('os', 'filters.php?type=os&category=1', 'Tous les OS')
-            ]);
-
-            // Ajouter les écouteurs d'événements
-            const filters = [
-                'min-ram', 'storage', 'screen-size', 
-                'refresh-rate', 'battery', 'os'
-            ];
-
-            filters.forEach(id => {
-                const element = document.getElementById(id);
-                if (element) {
-                    element.addEventListener('change', () => this.loadProducts());
-                }
-            });
-        } catch (error) {
-            console.error('Error initializing smartphone filters:', error);
-        }
+    constructor() {
+        super();
+        this.categoryId = 1; // Smartphones
     }
 
     getFilterValues() {
+        // Récupérer toutes les valeurs des filtres
         const values = {
             minPrice: document.getElementById('min-price')?.value || '',
             maxPrice: document.getElementById('max-price')?.value || '',
@@ -75,38 +18,94 @@ class SmartphoneFilter extends BaseProductFilter {
             os: document.getElementById('os')?.value || ''
         };
 
-        console.log('Filter values:', values);
-        return values;
+        // Créer l'objet de filtres pour l'API
+        const filters = {};
+        
+        // N'ajouter que les filtres qui ont une valeur
+        if (values.minPrice) filters.minPrice = parseFloat(values.minPrice);
+        if (values.maxPrice) filters.maxPrice = parseFloat(values.maxPrice);
+        if (values.manufacturer) filters.manufacturer = values.manufacturer;
+        if (values.minRam) filters.minRam = parseInt(values.minRam);
+        if (values.storage) filters.storage = parseInt(values.storage);
+        if (values.screenSize) filters.screenSize = parseFloat(values.screenSize);
+        if (values.refreshRate) filters.refreshRate = parseInt(values.refreshRate);
+        if (values.battery) filters.battery = parseInt(values.battery);
+        if (values.os) filters.os = values.os;
+
+        return filters;
     }
 
-    generateSpecsSummary(product) {
-        const specs = [];
-        
-        if (product.ram) specs.push(`${product.ram} Go RAM`);
-        if (product.storage_capacity) specs.push(`${product.storage_capacity} Go`);
-        if (product.screen_size) specs.push(`${product.screen_size}"`);
-        if (product.battery_capacity) specs.push(`${product.battery_capacity} mAh`);
-        if (product.operating_system) specs.push(product.operating_system);
-        if (product.refresh_rate) specs.push(`${product.refresh_rate} Hz`);
-        
-        return specs.join(' • ') || 'Spécifications non disponibles';
+    async loadProducts() {
+        try {
+            this.showLoading();
+            const filters = this.getFilterValues();
+            
+            // Construire l'URL avec la catégorie
+            const url = `${window.appConfig.baseUrl}/Backend/api/products.php?category=${this.categoryId}`;
+            
+            // Envoyer les filtres dans le body de la requête
+            const response = await fetch(url, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(filters)
+            });
+
+            if (!response.ok) {
+                throw new Error(`HTTP error: ${response.status}`);
+            }
+
+            const data = await response.json();
+            
+            if (data.success) {
+                this.products = data.data;
+                this.sortAndDisplayProducts();
+                this.updateResultsCount();
+                this.updatePagination();
+            } else {
+                throw new Error(data.message || 'Erreur lors du chargement des produits');
+            }
+        } catch (error) {
+            console.error('Error loading products:', error);
+            this.showToast('error', 'Erreur lors du chargement des produits');
+        } finally {
+            this.hideLoading();
+        }
+    }
+
+    setupEventListeners() {
+        super.setupEventListeners();
+
+        // Ajouter les écouteurs pour les filtres spécifiques aux smartphones
+        const smartphoneFilters = [
+            'min-ram', 'storage', 'screen-size', 
+            'refresh-rate', 'battery', 'os'
+        ];
+
+        smartphoneFilters.forEach(filterId => {
+            document.getElementById(filterId)?.addEventListener('change', () => {
+                this.loadProducts();
+            });
+        });
     }
 
     resetFilters() {
         const filterIds = [
-            'min-price', 'max-price', 'manufacturer', 'min-ram', 
-            'storage', 'screen-size', 'refresh-rate', 'battery', 'os'
+            'min-price', 'max-price', 'manufacturer',
+            'min-ram', 'storage', 'screen-size',
+            'refresh-rate', 'battery', 'os'
         ];
         
         filterIds.forEach(id => {
             const element = document.getElementById(id);
             if (element) {
-                console.log(`Resetting filter ${id}`);
                 element.value = '';
             }
         });
 
         this.loadProducts();
+        this.showToast('success', 'Filtres réinitialisés');
     }
 }
 

@@ -38,6 +38,14 @@ class Carousel {
                     <div class="absolute inset-0 transition-opacity duration-700 ease-in-out" data-carousel-item style="opacity: 0; pointer-events: none;">
                         <img src="./assets/images/News/Group 7.png" class="absolute block w-full -translate-x-1/2 -translate-y-1/2 top-1/2 left-1/2" alt="...">
                     </div>
+                    <!-- Item 4 -->
+                    <div class="absolute inset-0 transition-opacity duration-700 ease-in-out" data-carousel-item style="opacity: 0; pointer-events: none;">
+                        <img src="./assets/images/News/Group 8.png" class="absolute block w-full -translate-x-1/2 -translate-y-1/2 top-1/2 left-1/2" alt="...">
+                    </div>
+                    <!-- Item 5 -->
+                    <div class="absolute inset-0 transition-opacity duration-700 ease-in-out" data-carousel-item style="opacity: 0; pointer-events: none;">
+                        <img src="./assets/images/News/Group 9.png" class="absolute block w-full -translate-x-1/2 -translate-y-1/2 top-1/2 left-1/2" alt="...">
+                    </div>
                 </div>
                 
                 <!-- Contrôles -->
