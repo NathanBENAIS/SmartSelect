@@ -95,6 +95,7 @@ document.addEventListener('DOMContentLoaded', function() {
             const data = await response.json();
             
             const reviewsList = document.getElementById('reviews-list');
+            const currentUser = JSON.parse(localStorage.getItem('user') || '{}');
             
             if (!reviewsList) return;
             
@@ -105,9 +106,9 @@ document.addEventListener('DOMContentLoaded', function() {
                     </p>`;
                 return;
             }
-
+    
             reviewsList.innerHTML = data.data.map(review => `
-                <div class="border-b border-gray-200 dark:border-gray-700 pb-6 last:border-0">
+                <div class="border-b border-gray-200 dark:border-gray-700 pb-6 last:border-0" data-review-id="${review.id}">
                     <div class="flex items-center justify-between mb-2">
                         <div class="flex items-center">
                             ${generateStars(review.rating)}
@@ -115,18 +116,116 @@ document.addEventListener('DOMContentLoaded', function() {
                                 par ${review.username}
                             </span>
                         </div>
-                        <span class="text-sm text-gray-500 dark:text-gray-400">
-                            ${new Date(review.created_at).toLocaleDateString()}
-                        </span>
+                        <div class="flex items-center gap-2">
+                            <span class="text-sm text-gray-500 dark:text-gray-400">
+                                ${new Date(review.created_at).toLocaleDateString()}
+                            </span>
+                            ${currentUser.id === review.user_id ? `
+                                <button class="edit-review-btn text-blue-600 hover:text-blue-800">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
+                                    </svg>
+                                </button>
+                                <button class="delete-review-btn text-red-600 hover:text-red-800">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+                                    </svg>
+                                </button>
+                            ` : ''}
+                        </div>
                     </div>
                     <p class="text-gray-700 dark:text-gray-300">${review.comment}</p>
                 </div>
             `).join('');
+    
+            // Ajouter les écouteurs d'événements pour les boutons
+            document.querySelectorAll('.edit-review-btn').forEach(btn => {
+                btn.addEventListener('click', handleEditReview);
+            });
+    
+            document.querySelectorAll('.delete-review-btn').forEach(btn => {
+                btn.addEventListener('click', handleDeleteReview);
+            });
         } catch (error) {
             console.error('Erreur lors du chargement des avis:', error);
         }
     }
-
+    
+    // Fonction de gestion de la modification
+    async function handleEditReview(e) {
+        const reviewContainer = e.target.closest('[data-review-id]');
+        const reviewId = reviewContainer.dataset.reviewId;
+        const commentElement = reviewContainer.querySelector('p');
+        const ratingElement = reviewContainer.querySelector('.flex.items-center');
+        
+        // Remplacer le texte par un formulaire d'édition
+        const currentComment = commentElement.textContent;
+        const currentRating = reviewContainer.querySelectorAll('.text-yellow-400').length;
+    
+        commentElement.innerHTML = `
+            <textarea class="w-full px-3 py-2 border border-gray-300 rounded-md">${currentComment}</textarea>
+            <div class="flex gap-2 mt-2">
+                <button class="save-edit-btn px-3 py-1 bg-blue-600 text-white rounded-md hover:bg-blue-700">Enregistrer</button>
+                <button class="cancel-edit-btn px-3 py-1 bg-gray-600 text-white rounded-md hover:bg-gray-700">Annuler</button>
+            </div>
+        `;
+    
+        // Gérer la sauvegarde
+        const saveBtn = commentElement.querySelector('.save-edit-btn');
+        const cancelBtn = commentElement.querySelector('.cancel-edit-btn');
+        
+        saveBtn.addEventListener('click', async () => {
+            const newComment = commentElement.querySelector('textarea').value;
+            try {
+                const response = await fetch('/smartselect/Backend/api/reviews.php', {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        review_id: reviewId,
+                        user_id: JSON.parse(localStorage.getItem('user')).id,
+                        rating: currentRating,
+                        comment: newComment
+                    })
+                });
+                
+                if (response.ok) {
+                    loadReviews(); // Recharger tous les avis
+                    toastManager.success('Avis modifié avec succès');
+                }
+            } catch (error) {
+                toastManager.error('Erreur lors de la modification de l\'avis');
+            }
+        });
+    
+        cancelBtn.addEventListener('click', () => {
+            commentElement.textContent = currentComment;
+        });
+    }
+    
+    // Fonction de gestion de la suppression
+    async function handleDeleteReview(e) {
+        if (!confirm('Êtes-vous sûr de vouloir supprimer cet avis ?')) {
+            return;
+        }
+    
+        const reviewContainer = e.target.closest('[data-review-id]');
+        const reviewId = reviewContainer.dataset.reviewId;
+        const userId = JSON.parse(localStorage.getItem('user')).id;
+    
+        try {
+            const response = await fetch(`/smartselect/Backend/api/reviews.php?review_id=${reviewId}&user_id=${userId}`, {
+                method: 'DELETE'
+            });
+    
+            if (response.ok) {
+                loadReviews(); // Recharger tous les avis
+                toastManager.success('Avis supprimé avec succès');
+            }
+        } catch (error) {
+            toastManager.error('Erreur lors de la suppression de l\'avis');
+        }
+    }
+    
     // Générer les étoiles pour l'affichage des avis
     function generateStars(rating) {
         return Array(5).fill(0).map((_, index) => `
