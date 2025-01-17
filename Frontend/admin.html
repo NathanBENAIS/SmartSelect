@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Administration - SmartSelect</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100 dark:bg-gray-800">
+    <div id="header-container"></div>
+
+    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <h1 class="text-3xl font-bold text-gray-900 dark:text-white mb-8">Administration</h1>
+
+        <!-- Sélection de table -->
+        <div class="mb-8">
+            <select id="table-select" class="w-full p-2 border rounded-lg">
+                <option value="">Sélectionner une table</option>
+            </select>
+        </div>
+
+        <!-- Tableau des données -->
+        <div class="bg-white dark:bg-gray-900 shadow rounded-lg overflow-hidden">
+            <div class="overflow-x-auto">
+                <table id="data-table" class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+                    <thead class="bg-gray-50 dark:bg-gray-800">
+                        <tr id="table-headers"></tr>
+                    </thead>
+                    <tbody id="table-body" class="bg-white dark:bg-gray-900 divide-y divide-gray-200 dark:divide-gray-700">
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </main>
+
+    <script src="./assets/js/scriptComponent.js"></script>
+    <script src="./assets/js/toastManager.js"></script> 
+    <script src="./assets/js/header.js"></script>
+    <script src="./assets/js/admin.js"></script>
+</body>
+</html>

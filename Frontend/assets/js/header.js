@@ -12,26 +12,30 @@ function updateAuthSection() {
   const user = isUserLoggedIn();
 
   if (user) {
-    // Version connectée
-    authSection.innerHTML = `
-        <div class="relative">
-            <button id="user-menu-button" class="flex items-center space-x-2 bg-gradient-to-r from-blue-500 to-blue-600 text-white px-4 py-2 rounded-full shadow-md transition duration-300 ease-in-out transform hover:from-blue-600 hover:to-blue-700 hover:-translate-y-1 hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2">
-                <span>${user.username}</span>
-                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
-                </svg>
-            </button>
-            <div id="user-dropdown" class="hidden absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg py-1 z-50">
-                <a href="profile.html" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Mon profil</a>
-                <a href="favorites.html" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Mes favoris</a>
-                <hr class="my-1">
-                <button id="logout-button" class="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-gray-100">
-                    Se déconnecter
-                </button>
-            </div>
-        </div>
+    // Condition pour afficher le lien d'administration
+    const adminLink = user.username === 'Nathan BENAIS' 
+      ? `<a href="admin.html" class="block px-4 py-2 text-sm text-blue-600 hover:bg-gray-100 font-semibold">Administration</a>`
+      : '';
 
-        `;
+    authSection.innerHTML = `
+      <div class="relative">
+        <button id="user-menu-button" class="flex items-center space-x-2 bg-gradient-to-r from-blue-500 to-blue-600 text-white px-4 py-2 rounded-full shadow-md transition duration-300 ease-in-out transform hover:from-blue-600 hover:to-blue-700 hover:-translate-y-1 hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2">
+          <span>${user.username}</span>
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+          </svg>
+        </button>
+        <div id="user-dropdown" class="hidden absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg py-1 z-50">
+          <a href="profile.html" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Mon profil</a>
+          <a href="favorites.html" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Mes favoris</a>
+          ${adminLink}
+          <hr class="my-1">
+          <button id="logout-button" class="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-gray-100">
+            Se déconnecter
+          </button>
+        </div>
+      </div>
+    `;
 
     // Gestion du menu utilisateur
     const userMenuButton = document.getElementById("user-menu-button");
@@ -46,10 +50,7 @@ function updateAuthSection() {
 
       // Fermer le menu si on clique ailleurs
       document.addEventListener("click", (e) => {
-        if (
-          !userMenuButton.contains(e.target) &&
-          !userDropdown.contains(e.target)
-        ) {
+        if (!userMenuButton.contains(e.target) && !userDropdown.contains(e.target)) {
           userDropdown.classList.add("hidden");
         }
       });

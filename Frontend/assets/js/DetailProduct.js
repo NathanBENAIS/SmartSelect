@@ -600,8 +600,79 @@ class DetailProduct {
                 </div>`;
         }
     }
+
+
+    async loadNews() {
+        const newsContainer = document.getElementById('news-container');
+        if (!newsContainer) return;
     
+        // Afficher l'état de chargement
+        newsContainer.innerHTML = `
+            <div class="p-8 text-center">
+                <div class="inline-block animate-spin w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full"></div>
+                <p class="mt-4 text-gray-600 dark:text-gray-400">Chargement des actualités...</p>
+            </div>
+        `;
     
+        try {
+            // Utilisation de l'API Rss2Json pour obtenir le flux RSS de 01net (ou autre source tech)
+            const response = await fetch('https://api.rss2json.com/v1/api.json?rss_url=https%3A%2F%2Fwww.01net.com%2Frss%2Factualites%2F');
+            const data = await response.json();
+    
+            if (!data.items || data.items.length === 0) {
+                throw new Error('Aucune actualité disponible');
+            }
+    
+            // Générer le HTML pour chaque actualité
+            const newsHTML = data.items.slice(0, 5).map(item => {
+                const date = new Date(item.pubDate).toLocaleDateString('fr-FR', {
+                    year: 'numeric',
+                    month: 'long',
+                    day: 'numeric'
+                });
+    
+                return `
+                    <div class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow hover:shadow-md transition-shadow">
+                        <div class="flex items-center justify-between mb-4">
+                            <span class="text-sm text-gray-500 dark:text-gray-400">${data.feed.title}</span>
+                            <span class="text-sm text-gray-500 dark:text-gray-400">${date}</span>
+                        </div>
+                        ${item.thumbnail ? `
+                            <img src="${item.thumbnail}" alt="${item.title}" 
+                                 class="w-full h-48 object-cover rounded-lg mb-4">
+                        ` : ''}
+                        <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-2">${item.title}</h3>
+                        <p class="text-gray-600 dark:text-gray-300 mb-4">${item.description.split(' ').slice(0, 30).join(' ')}...</p>
+                        <a href="${item.link}" target="_blank" rel="noopener noreferrer" 
+                           class="inline-flex items-center text-blue-600 dark:text-blue-400 hover:underline">
+                            Lire la suite
+                            <svg class="w-4 h-4 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"/>
+                            </svg>
+                        </a>
+                    </div>
+                `;
+            }).join('');
+    
+            newsContainer.innerHTML = newsHTML;
+    
+        } catch (error) {
+            newsContainer.innerHTML = `
+                <div class="p-8 text-center">
+                    <div class="text-red-500 dark:text-red-400">
+                        Une erreur est survenue lors du chargement des actualités
+                    </div>
+                    <button onclick="window.productDetail.loadNews()" 
+                            class="mt-4 px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600">
+                        Réessayer
+                    </button>
+                </div>
+            `;
+            console.error('Erreur de chargement des actualités:', error);
+        }
+    }
+    
+   
     extractVideoId(url) {
         try {
             const regex = /(?:youtu\.be\/|youtube\.com(?:\/embed\/|\/v\/|\/watch\?v=|\/watch\?.+&v=))([^\/&#?]{11})/;
@@ -823,6 +894,129 @@ class DetailProduct {
         const backButton = document.getElementById('back-button');
         if (backButton) {
             backButton.addEventListener('click', () => window.history.back());
+        }
+        document.querySelector('[onclick="switchTab(\'news\')"]')?.addEventListener('click', () => {
+            this.loadNews();
+        });
+    }
+
+    async loadNews() {
+        const newsContainer = document.getElementById('news-container');
+        if (!newsContainer) return;
+    
+        // Ajouter des styles pour une barre de défilement personnalisée
+        newsContainer.style.cssText = `
+            scrollbar-width: thin;
+            scrollbar-color: rgba(156, 163, 175, 0.5) transparent;
+        `;
+    
+        // Afficher l'état de chargement
+        newsContainer.innerHTML = `
+            <div class="p-8 text-center">
+                <div class="inline-block animate-spin w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full"></div>
+                <p class="mt-4 text-gray-600 dark:text-gray-400">Chargement des actualités...</p>
+            </div>
+        `;
+    
+        try {
+            // Liste des flux RSS à récupérer
+            const feeds = [
+                'https://www.01net.com/rss/actualites/',
+                'https://www.frandroid.com/feed',
+                'https://www.lesnumeriques.com/rss.xml'
+            ];
+    
+            // Récupérer tous les flux en parallèle
+            const feedPromises = feeds.map(feed => 
+                fetch(`https://api.rss2json.com/v1/api.json?rss_url=${encodeURIComponent(feed)}`)
+                    .then(res => res.json())
+            );
+    
+            const results = await Promise.all(feedPromises);
+    
+            // Fusionner et trier les actualités par date
+            const allNews = results.flatMap(data => 
+                data.items?.map(item => ({
+                    ...item,
+                    sourceName: data.feed.title
+                })) || []
+            ).sort((a, b) => new Date(b.pubDate) - new Date(a.pubDate))
+            .slice(0, 15); // Augmenté à 15 articles puisqu'on a une barre de défilement
+    
+            if (allNews.length === 0) {
+                throw new Error('Aucune actualité disponible');
+            }
+    
+            const newsHTML = `
+                <style>
+                    /* Styles pour la barre de défilement - Webkit (Chrome, Safari) */
+                    #news-container::-webkit-scrollbar {
+                        width: 6px;
+                    }
+                    #news-container::-webkit-scrollbar-track {
+                        background: transparent;
+                    }
+                    #news-container::-webkit-scrollbar-thumb {
+                        background-color: rgba(156, 163, 175, 0.5);
+                        border-radius: 20px;
+                    }
+                    #news-container::-webkit-scrollbar-thumb:hover {
+                        background-color: rgba(156, 163, 175, 0.7);
+                    }
+                    /* Style pour le mode sombre */
+                    .dark #news-container::-webkit-scrollbar-thumb {
+                        background-color: rgba(156, 163, 175, 0.3);
+                    }
+                    .dark #news-container::-webkit-scrollbar-thumb:hover {
+                        background-color: rgba(156, 163, 175, 0.5);
+                    }
+                </style>
+                ${allNews.map(item => {
+                    const date = new Date(item.pubDate).toLocaleDateString('fr-FR', {
+                        year: 'numeric',
+                        month: 'long',
+                        day: 'numeric'
+                    });
+    
+                    return `
+                        <div class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow hover:shadow-md transition-shadow">
+                            <div class="flex items-center justify-between mb-4">
+                                <span class="text-sm text-gray-500 dark:text-gray-400">${item.sourceName}</span>
+                                <span class="text-sm text-gray-500 dark:text-gray-400">${date}</span>
+                            </div>
+                            ${item.thumbnail ? `
+                                <img src="${item.thumbnail}" alt="${item.title}" 
+                                     class="w-full h-48 object-cover rounded-lg mb-4">
+                            ` : ''}
+                            <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-2">${item.title}</h3>
+                            <p class="text-gray-600 dark:text-gray-300 mb-4">${item.description.split(' ').slice(0, 30).join(' ')}...</p>
+                            <a href="${item.link}" target="_blank" rel="noopener noreferrer" 
+                               class="inline-flex items-center text-blue-600 dark:text-blue-400 hover:underline">
+                                Lire la suite
+                                <svg class="w-4 h-4 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"/>
+                                </svg>
+                            </a>
+                        </div>
+                    `;
+                }).join('')}
+            `;
+    
+            newsContainer.innerHTML = newsHTML;
+    
+        } catch (error) {
+            newsContainer.innerHTML = `
+                <div class="p-8 text-center">
+                    <div class="text-red-500 dark:text-red-400">
+                        Une erreur est survenue lors du chargement des actualités
+                    </div>
+                    <button onclick="window.productDetail.loadNews()" 
+                            class="mt-4 px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600">
+                        Réessayer
+                    </button>
+                </div>
+            `;
+            console.error('Erreur de chargement des actualités:', error);
         }
     }
 
